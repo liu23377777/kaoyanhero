@@ -1,0 +1,208 @@
+-- 考研勇者多人版数据库结构
+-- 在 Supabase Dashboard > SQL Editor 中完整执行一次。
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  xp integer not null default 0 check (xp >= 0),
+  coin integer not null default 0 check (coin >= 0),
+  streak integer not null default 0 check (streak >= 0),
+  last_date date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.checkins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  study_text text not null default '',
+  topics jsonb not null default '[]'::jsonb,
+  photo_count integer not null default 0 check (photo_count between 0 and 6),
+  score integer not null check (score between 0 and 100),
+  title text not null,
+  review jsonb not null,
+  provider text not null,
+  model text not null,
+  xp integer not null default 0 check (xp >= 0),
+  coin integer not null default 0 check (coin >= 0),
+  ai_options jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists checkins_user_created_idx on public.checkins(user_id, created_at desc);
+
+create table if not exists public.ai_preferences (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  provider text not null default 'glm',
+  reasoning_mode text not null default 'balanced' check (reasoning_mode in ('fast', 'balanced', 'deep')),
+  detail_level text not null default 'standard' check (detail_level in ('concise', 'standard', 'detailed')),
+  max_tokens integer not null default 8192 check (max_tokens between 2048 and 12000),
+  temperature numeric(3,2) not null default 0.35 check (temperature between 0 and 1),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.habitica_connections (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  habitica_user_id text not null,
+  token_ciphertext text not null,
+  task_id text not null,
+  client_id text not null,
+  task_name text not null default '考研勇者每日打卡',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.usage_counters (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  usage_date date not null default current_date,
+  ai_requests integer not null default 0 check (ai_requests >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, usage_date)
+);
+
+alter table public.profiles enable row level security;
+alter table public.checkins enable row level security;
+alter table public.ai_preferences enable row level security;
+alter table public.habitica_connections enable row level security;
+alter table public.usage_counters enable row level security;
+
+drop policy if exists "profiles_select_own" on public.profiles;
+create policy "profiles_select_own" on public.profiles for select using (auth.uid() = id);
+
+drop policy if exists "checkins_select_own" on public.checkins;
+create policy "checkins_select_own" on public.checkins for select using (auth.uid() = user_id);
+
+drop policy if exists "preferences_select_own" on public.ai_preferences;
+create policy "preferences_select_own" on public.ai_preferences for select using (auth.uid() = user_id);
+drop policy if exists "preferences_insert_own" on public.ai_preferences;
+create policy "preferences_insert_own" on public.ai_preferences for insert with check (auth.uid() = user_id);
+drop policy if exists "preferences_update_own" on public.ai_preferences;
+create policy "preferences_update_own" on public.ai_preferences for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "habitica_select_own" on public.habitica_connections;
+create policy "habitica_select_own" on public.habitica_connections for select using (auth.uid() = user_id);
+drop policy if exists "habitica_insert_own" on public.habitica_connections;
+create policy "habitica_insert_own" on public.habitica_connections for insert with check (auth.uid() = user_id);
+drop policy if exists "habitica_update_own" on public.habitica_connections;
+create policy "habitica_update_own" on public.habitica_connections for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "usage_select_own" on public.usage_counters;
+create policy "usage_select_own" on public.usage_counters for select using (auth.uid() = user_id);
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles(id) values (new.id) on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+create or replace function public.record_checkin(
+  p_text text,
+  p_topics jsonb,
+  p_photo_count integer,
+  p_review jsonb,
+  p_provider text,
+  p_model text,
+  p_xp integer,
+  p_coin integer,
+  p_ai_options jsonb
+)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_profile public.profiles%rowtype;
+  v_streak integer;
+  v_checkin public.checkins%rowtype;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  if p_xp < 0 or p_coin < 0 then raise exception 'Invalid rewards'; end if;
+
+  insert into public.profiles(id) values (v_user) on conflict (id) do nothing;
+  select * into v_profile from public.profiles where id = v_user for update;
+
+  if v_profile.last_date = current_date then
+    v_streak := v_profile.streak;
+  elsif v_profile.last_date = current_date - 1 then
+    v_streak := v_profile.streak + 1;
+  else
+    v_streak := 1;
+  end if;
+
+  insert into public.checkins(user_id, study_text, topics, photo_count, score, title, review, provider, model, xp, coin, ai_options)
+  values (
+    v_user,
+    left(coalesce(p_text, ''), 4000),
+    coalesce(p_topics, '[]'::jsonb),
+    greatest(0, least(6, p_photo_count)),
+    greatest(0, least(100, coalesce((p_review->>'score')::integer, 60))),
+    left(coalesce(p_review->>'title', '学习打卡'), 80),
+    p_review,
+    left(p_provider, 100),
+    left(p_model, 120),
+    p_xp,
+    p_coin,
+    coalesce(p_ai_options, '{}'::jsonb)
+  ) returning * into v_checkin;
+
+  update public.profiles
+    set xp = xp + p_xp,
+        coin = coin + p_coin,
+        streak = v_streak,
+        last_date = current_date,
+        updated_at = now()
+    where id = v_user
+    returning * into v_profile;
+
+  return jsonb_build_object(
+    'profile', jsonb_build_object('xp', v_profile.xp, 'coin', v_profile.coin, 'streak', v_profile.streak, 'lastDate', v_profile.last_date),
+    'checkin', jsonb_build_object('id', v_checkin.id, 'score', v_checkin.score, 'title', v_checkin.title, 'provider', v_checkin.provider, 'xp', v_checkin.xp, 'createdAt', v_checkin.created_at)
+  );
+end;
+$$;
+
+create or replace function public.consume_ai_quota(p_limit integer)
+returns integer
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_count integer;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  if p_limit < 1 or p_limit > 1000 then raise exception 'Invalid quota limit'; end if;
+
+  insert into public.usage_counters(user_id, usage_date, ai_requests)
+  values (v_user, current_date, 1)
+  on conflict (user_id, usage_date)
+  do update set ai_requests = public.usage_counters.ai_requests + 1, updated_at = now()
+  returning ai_requests into v_count;
+
+  if v_count > p_limit then
+    raise exception 'DAILY_AI_LIMIT_REACHED';
+  end if;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) from public;
+grant execute on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) to authenticated;
+revoke all on function public.consume_ai_quota(integer) from public;
+grant execute on function public.consume_ai_quota(integer) to authenticated;
+
+grant usage on schema public to authenticated;
+grant select on public.profiles, public.checkins to authenticated;
+grant select, insert, update on public.ai_preferences, public.habitica_connections to authenticated;
+grant select on public.usage_counters to authenticated;

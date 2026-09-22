@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="用多模态 AI 评价学习记录与打卡照片的考研学习工具">
+  <title>考研勇者 · AI 打卡</title>
+  <style>
+    :root {
+      --ink: #18223b;
+      --muted: #69748c;
+      --paper: #fffdf8;
+      --paper-deep: #f3eee4;
+      --orange: #ff6b35;
+      --orange-dark: #d94c1d;
+      --yellow: #ffc857;
+      --mint: #2f9b7b;
+      --blue: #476bd6;
+      --line: rgba(24, 34, 59, 0.13);
+      --shadow: 0 20px 55px rgba(38, 42, 61, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 200, 87, 0.27), transparent 24rem),
+        radial-gradient(circle at 92% 18%, rgba(71, 107, 214, 0.14), transparent 25rem),
+        #f6f2ea;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.33;
+      background-image: linear-gradient(rgba(24, 34, 59, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(24, 34, 59, 0.045) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, black, transparent 70%);
+    }
+
+    button, textarea, select, input { font: inherit; }
+    button, select, label[for="photo"] { -webkit-tap-highlight-color: transparent; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 56px;
+      position: relative;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-mark {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--ink);
+      border-radius: 15px;
+      background: var(--yellow);
+      box-shadow: 4px 4px 0 var(--ink);
+      font-size: 23px;
+      transform: rotate(-3deg);
+    }
+
+    .brand strong { display: block; font-size: 18px; letter-spacing: 0.04em; }
+    .brand small { color: var(--muted); font-size: 12px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    .top-nav { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,248,.72); }
+    .top-nav a { padding: 7px 11px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; transition: .2s; }
+    .top-nav a:hover { background: white; color: var(--ink); }
+    .account-button { min-width: 84px; padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--ink); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
+
+    .date-chip {
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 253, 248, 0.76);
+      color: var(--muted);
+      font-size: 13px;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.45fr 0.8fr;
+      gap: 22px;
+      padding: 32px;
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-xl);
+      background: var(--ink);
+      color: white;
+      box-shadow: 8px 8px 0 var(--yellow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      right: -100px;
+      bottom: -160px;
+      border: 52px solid rgba(255, 200, 87, 0.13);
+      border-radius: 50%;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--yellow);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before { content: ""; width: 24px; height: 2px; background: currentColor; }
+
+    h1 {
+      max-width: 650px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 64px);
+      line-height: 1.08;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-copy p {
+      max-width: 620px;
+      margin: 16px 0 0;
+      color: rgba(255, 255, 255, 0.67);
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .level-panel {
+      position: relative;
+      z-index: 1;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+    }
+
+    .level-row { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+    .level-number { font-size: 44px; font-weight: 900; letter-spacing: -0.05em; }
+    .level-caption { color: rgba(255,255,255,.62); font-size: 12px; margin-bottom: 7px; }
+    .streak { color: var(--yellow); font-weight: 800; font-size: 14px; }
+    .progress-track { height: 10px; margin: 18px 0 8px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--yellow), var(--orange)); transition: width .7s cubic-bezier(.2,.8,.2,1); }
+    .progress-meta { display: flex; justify-content: space-between; color: rgba(255,255,255,.58); font-size: 11px; }
+    .hero-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 22px; }
+    .hero-stat { padding: 12px; border-radius: 14px; background: rgba(0,0,0,.16); }
+    .hero-stat span { display: block; color: rgba(255,255,255,.55); font-size: 11px; margin-bottom: 3px; }
+    .hero-stat strong { font-size: 20px; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr);
+      gap: 22px;
+      margin-top: 30px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 253, 248, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .form-card { padding: 28px; }
+
+    .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .section-heading h2 { margin: 0 0 6px; font-size: 23px; letter-spacing: -.025em; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .step-number { color: var(--orange); font-size: 12px; font-weight: 900; letter-spacing: .1em; white-space: nowrap; }
+
+    .field-label { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 9px; font-size: 13px; font-weight: 800; }
+    .field-label span { color: var(--muted); font-weight: 500; }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 168px;
+      resize: vertical;
+      padding: 17px 18px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius-lg);
+      outline: none;
+      background: white;
+      color: var(--ink);
+      line-height: 1.75;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(71, 107, 214, .11); }
+    textarea::placeholder { color: #a7adba; }
+
+    .quick-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 22px; }
+    .tag-button {
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      transition: .2s;
+    }
+    .tag-button:hover { border-color: var(--orange); color: var(--orange-dark); background: #fff4ec; transform: translateY(-1px); }
+    .tag-button.active { border-color: var(--orange); background: var(--orange); color: white; }
+    .topic-builder { margin: 18px 0 22px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #faf8f2; }
+    .topic-builder .quick-tags { margin: 10px 0 12px; }
+    .topic-entry { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .topic-entry input { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; outline: 0; background: white; }
+    .topic-entry input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(71,107,214,.1); }
+    .topic-add { padding: 10px 14px; border: 0; border-radius: 11px; background: var(--ink); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
+    .selected-topics { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+    .selected-topic { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 999px; background: #e9eefc; color: #324d9f; font-size: 11px; font-weight: 700; }
+    .selected-topic button { width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%; background: rgba(50,77,159,.12); color: inherit; cursor: pointer; line-height: 1; }
+    .topic-hint { margin: 9px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+
+    .upload-zone {
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      border: 1.5px dashed rgba(24,34,59,.25);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--paper-deep);
+      position: relative;
+      transition: .2s;
+    }
+    .upload-zone.dragover { border-color: var(--orange); background: #fff0e6; }
+    .upload-zone.has-image { display: block; padding: 12px; border-style: solid; background: #171c2c; }
+    #photo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .upload-empty { padding: 28px; text-align: center; }
+    .upload-icon { width: 52px; height: 52px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 16px; background: white; box-shadow: 0 8px 18px rgba(24,34,59,.1); font-size: 24px; }
+    .upload-empty strong { display: block; margin-bottom: 6px; font-size: 14px; }
+    .upload-empty small { color: var(--muted); line-height: 1.6; }
+    .upload-empty label { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+    .preview-grid { display: none; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .has-image .preview-grid { display: grid; }
+    .preview-item { aspect-ratio: 1; position: relative; overflow: hidden; border-radius: 13px; background: #252b3f; }
+    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-item span { position: absolute; left: 7px; bottom: 7px; padding: 3px 6px; border-radius: 6px; background: rgba(10,14,23,.72); color: white; font-size: 9px; }
+    .preview-item button { position: absolute; top: 7px; right: 7px; width: 27px; height: 27px; padding: 0; border: 0; border-radius: 50%; background: rgba(10,14,23,.78); color: white; cursor: pointer; }
+    .add-more-photo { min-height: 90px; display: grid; place-items: center; border: 1px dashed rgba(255,255,255,.35); border-radius: 13px; color: rgba(255,255,255,.72); text-align: center; cursor: pointer; font-size: 11px; line-height: 1.5; }
+    .has-image .upload-empty { display: none; }
+
+    .privacy-note { display: flex; gap: 8px; margin: 12px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+    .provider-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      margin-top: 22px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: white;
+    }
+    .provider-select-wrap { min-width: 0; }
+    .provider-select-wrap label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    select { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ink); font-weight: 800; cursor: pointer; }
+    .provider-state { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .state-dot { width: 8px; height: 8px; border-radius: 50%; background: #c5c8d0; }
+    .provider-state.ready .state-dot { background: var(--mint); box-shadow: 0 0 0 4px rgba(47,155,123,.12); }
+    .provider-state.ready { color: var(--mint); }
+
+    .ai-settings {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.68);
+      overflow: hidden;
+    }
+    .ai-settings summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 15px;
+      cursor: pointer;
+      list-style: none;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .ai-settings summary::-webkit-details-marker { display: none; }
+    .ai-settings summary::after { content: "＋"; color: var(--blue); font-size: 17px; line-height: 1; }
+    .ai-settings[open] summary::after { content: "−"; }
+    .ai-settings summary span { display: inline-flex; align-items: center; gap: 8px; }
+    .ai-settings summary small { margin-left: auto; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 15px 15px;
+      border-top: 1px dashed var(--line);
+    }
+    .setting-field { min-width: 0; padding-top: 13px; }
+    .setting-field label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .setting-field select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font-size: 11px; }
+    .setting-field input[type="range"] { width: 100%; accent-color: var(--blue); cursor: pointer; }
+    .settings-note { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .settings-reset { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+
+    .submit-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 14px;
+      padding: 15px 20px;
+      border: 2px solid var(--ink);
+      border-radius: var(--radius-md);
+      background: var(--orange);
+      color: white;
+      box-shadow: 4px 4px 0 var(--ink);
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, background .2s;
+    }
+    .submit-button:hover:not(:disabled) { background: var(--orange-dark); transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+    .submit-button:disabled { opacity: .62; cursor: wait; }
+    .spinner { display: none; width: 17px; height: 17px; border: 2px solid rgba(255,255,255,.38); border-top-color: white; border-radius: 50%; animation: spin .8s linear infinite; }
+    .loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .review-column { display: grid; gap: 18px; }
+    .review-card { overflow: hidden; }
+    .review-top { padding: 25px 25px 21px; border-bottom: 1px solid var(--line); }
+    .review-kicker { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .review-kicker strong { font-size: 13px; letter-spacing: .04em; }
+    .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border-radius: 999px; background: #edf0fb; color: var(--blue); font-size: 10px; font-weight: 800; }
+    .ai-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .empty-review { min-height: 330px; display: grid; place-items: center; padding: 36px; text-align: center; }
+    .empty-illustration { width: 118px; height: 118px; display: grid; place-items: center; margin: 0 auto 20px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper-deep); font-size: 48px; position: relative; }
+    .empty-illustration::after { content: "AI"; position: absolute; right: -4px; bottom: 4px; padding: 5px 7px; border: 2px solid var(--ink); border-radius: 8px; background: var(--yellow); color: var(--ink); font-size: 10px; font-weight: 900; transform: rotate(-8deg); }
+    .empty-review h3 { margin: 0 0 9px; font-size: 18px; }
+    .empty-review p { max-width: 310px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
+
+    .result-review { display: none; }
+    .score-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 18px; }
+    .score-ring { --score: 0; width: 92px; height: 92px; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--orange) calc(var(--score) * 1%), #ece8de 0); position: relative; }
+    .score-ring::before { content: ""; position: absolute; inset: 8px; border-radius: inherit; background: var(--paper); }
+    .score-value { position: relative; text-align: center; line-height: 1; }
+    .score-value strong { display: block; font-size: 30px; letter-spacing: -.05em; }
+    .score-value small { color: var(--muted); font-size: 9px; }
+    .score-copy h3 { margin: 0 0 7px; font-size: 21px; }
+    .score-copy p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .discovered-topics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .discovered-topic { padding: 5px 8px; border-radius: 999px; background: #edf0fb; color: var(--blue); font-size: 10px; font-weight: 800; }
+    .review-body { padding: 22px 25px 25px; }
+    .review-block + .review-block { margin-top: 19px; }
+    .review-block h4 { margin: 0 0 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .review-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .review-list li { position: relative; padding-left: 20px; color: #485168; font-size: 13px; line-height: 1.55; }
+    .review-list li::before { content: "✓"; position: absolute; left: 0; color: var(--mint); font-weight: 900; }
+    .review-list.suggestions li::before { content: "→"; color: var(--orange); }
+    .knowledge-review { display: grid; gap: 12px; margin-bottom: 21px; }
+    .knowledge-card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .knowledge-card summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 15px; cursor: pointer; list-style: none; }
+    .knowledge-card summary::-webkit-details-marker { display: none; }
+    .knowledge-card summary::after { content: "+"; flex: 0 0 auto; width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; background: var(--paper-deep); font-weight: 900; }
+    .knowledge-card[open] summary::after { content: "−"; }
+    .knowledge-card summary strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .knowledge-card summary small { color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .knowledge-content { padding: 0 15px 16px; border-top: 1px solid var(--line); }
+    .knowledge-content p { margin: 13px 0; color: #3f485e; font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+    .connection-list { display: grid; gap: 6px; margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .practice-card { margin-top: 8px; padding: 11px 12px; border-radius: 11px; background: #f7f3ea; }
+    .practice-card strong { display: block; color: var(--orange-dark); font-size: 11px; }
+    .practice-card span, .practice-card em { display: block; margin-top: 4px; color: #4f586d; font-size: 10px; line-height: 1.55; font-style: normal; }
+    .next-goal { padding: 14px 15px; border-radius: var(--radius-md); background: #fff1e8; color: #67301d; font-size: 13px; line-height: 1.6; }
+    .next-goal strong { display: block; margin-bottom: 3px; color: var(--orange-dark); font-size: 11px; letter-spacing: .08em; }
+    .reward-strip { grid-template-columns: repeat(3, 1fr); gap: 1px; border-top: 1px solid var(--line); background: var(--line); }
+    .reward-strip.result-review { display: none; }
+    .reward { padding: 14px 8px; background: var(--paper); text-align: center; }
+    .reward span { display: block; color: var(--muted); font-size: 10px; }
+    .reward strong { font-size: 16px; }
+
+    .history-card { padding: 22px; }
+    .history-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .history-title h3 { margin: 0; font-size: 15px; }
+    .history-title span { color: var(--muted); font-size: 11px; }
+    .history-list { display: grid; gap: 9px; }
+    .history-empty { padding: 16px; border-radius: 13px; background: var(--paper-deep); color: var(--muted); text-align: center; font-size: 12px; }
+    .history-item { display: grid; grid-template-columns: 42px 1fr auto; gap: 11px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .history-score { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 11px; background: var(--ink); color: white; font-size: 13px; font-weight: 900; }
+    .history-content { min-width: 0; }
+    .history-content strong, .history-content span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-content strong { font-size: 12px; }
+    .history-content span { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .history-reward { color: var(--orange-dark); font-size: 11px; font-weight: 800; }
+    .integration-card { padding: 19px 22px; }
+    .integration-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .integration-name { display: flex; align-items: center; gap: 10px; }
+    .integration-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: #5b3a98; color: white; font-size: 18px; }
+    .integration-name strong, .integration-name small { display: block; }
+    .integration-name strong { font-size: 13px; }
+    .integration-name small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .integration-status { padding: 6px 9px; border-radius: 999px; background: var(--paper-deep); color: var(--muted); font-size: 10px; font-weight: 800; }
+    .integration-status.ready { background: #e7f5ef; color: var(--mint); }
+    .habitica-setup { margin-top: 14px; border-top: 1px dashed var(--line); }
+    .habitica-setup summary { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; list-style: none; color: #5b3a98; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .habitica-setup summary::-webkit-details-marker { display: none; }
+    .habitica-setup summary::after { content: "＋"; font-size: 16px; }
+    .habitica-setup[open] summary::after { content: "−"; }
+    .habitica-form { display: grid; gap: 10px; margin-top: 12px; }
+    .habitica-field { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .habitica-field input { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); outline: 0; font: inherit; }
+    .habitica-field input:focus { border-color: #5b3a98; box-shadow: 0 0 0 3px rgba(91,58,152,.1); }
+    .habitica-connect { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 12px; border: 0; border-radius: 10px; background: #5b3a98; color: white; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .habitica-connect:disabled { opacity: .6; cursor: wait; }
+    .habitica-help { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.55; }
+
+    .auth-modal { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.62); backdrop-filter: blur(7px); }
+    .auth-modal.open { display: flex; }
+    .auth-dialog { width: min(430px, 100%); padding: 25px; border: 2px solid var(--ink); border-radius: 24px; background: var(--paper); box-shadow: 7px 7px 0 var(--yellow); position: relative; }
+    .auth-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--paper-deep); cursor: pointer; }
+    .auth-dialog h2 { margin: 0 0 5px; font-size: 24px; }
+    .auth-dialog > p { margin: 0 0 18px; color: var(--muted); font-size: 12px; }
+    .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 16px; padding: 4px; border-radius: 12px; background: var(--paper-deep); }
+    .auth-tab { padding: 9px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 800; }
+    .auth-tab.active { background: white; color: var(--ink); box-shadow: 0 3px 10px rgba(24,34,59,.08); }
+    .auth-field { display: block; margin-top: 11px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .auth-field input { width: 100%; margin-top: 6px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; background: white; outline: 0; }
+    .auth-submit { width: 100%; margin-top: 15px; padding: 12px; border: 0; border-radius: 11px; background: var(--orange); color: white; cursor: pointer; font-weight: 900; }
+    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); font-size: 10px; }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    .social-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .social-button { padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .auth-note { margin-top: 13px; color: var(--muted); font-size: 9px; line-height: 1.5; text-align: center; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 20;
+      max-width: min(420px, calc(100% - 32px));
+      padding: 12px 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      background: #171c2c;
+      color: white;
+      box-shadow: 0 12px 40px rgba(0,0,0,.22);
+      opacity: 0;
+      transform: translate(-50%, 16px);
+      pointer-events: none;
+      transition: .25s;
+      font-size: 13px;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.error { background: #7f2d24; }
+
+    @media (max-width: 880px) {
+      .hero, .workspace { grid-template-columns: 1fr; }
+      .level-panel { min-height: 190px; }
+      .review-column { grid-row: auto; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 15px; }
+      .topbar { align-items: flex-start; }
+      .date-chip, .top-nav { display: none; }
+      .hero { padding: 25px 21px; box-shadow: 5px 5px 0 var(--yellow); }
+      .hero-copy p { font-size: 13px; }
+      .workspace { margin-top: 22px; gap: 15px; }
+      .form-card { padding: 21px; }
+      .review-top, .review-body { padding-left: 20px; padding-right: 20px; }
+      .provider-row { grid-template-columns: 1fr; }
+      .provider-state { justify-self: start; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .settings-note { grid-column: 1; align-items: flex-start; }
+      .score-row { grid-template-columns: 78px 1fr; }
+      .score-ring { width: 78px; height: 78px; }
+      .reward-strip { grid-template-columns: repeat(3, 1fr); }
+      .preview-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">勇</div>
+        <div><strong>考研勇者</strong><small>AI Study Quest · V3.0</small></div>
+      </div>
+      <div class="topbar-actions">
+        <nav class="top-nav" aria-label="页面导航"><a href="#homeSection">首页</a><a href="#checkinSection">打卡</a><a href="#historySection">战绩</a></nav>
+        <div class="date-chip" id="todayLabel">今天也要稳稳推进</div>
+        <button class="account-button" id="accountButton" type="button">登录 / 注册</button>
+      </div>
+    </header>
+
+    <section class="hero" id="homeSection" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <div class="eyebrow">Daily study quest</div>
+        <h1 id="pageTitle">今天的每一页，<br>都算数。</h1>
+        <p>写下完成的任务，上传你的学习现场。多模态 AI 会综合目标、投入、复盘和照片凭证，给出真正能用于明天的建议。</p>
+      </div>
+      <div class="level-panel" aria-label="角色等级信息">
+        <div>
+          <div class="level-row">
+            <div><div class="level-caption">当前等级</div><div class="level-number" id="level">Lv.1</div></div>
+            <div class="streak" id="streak">🔥 0 天连胜</div>
+          </div>
+          <div class="progress-track" aria-label="升级进度"><div class="progress-fill" id="xpProgress"></div></div>
+          <div class="progress-meta"><span id="xpText">0 / 500 XP</span><span>下一等级</span></div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span>累计经验</span><strong id="xp">0</strong></div>
+          <div class="hero-stat"><span>勇者金币</span><strong id="coin">🪙 0</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="checkinSection">
+      <form class="card form-card" id="checkinForm">
+        <div class="section-heading">
+          <div><h2>今日作战记录</h2><p>越具体，AI 的建议越有用。</p></div>
+          <div class="step-number">STEP 01</div>
+        </div>
+
+        <label class="field-label" for="studyText">学习内容 <span id="charCount">0 / 4000</span></label>
+        <textarea id="studyText" maxlength="4000" placeholder="例如：数学复习极限 3 小时，完成 40 道题，错了 7 道。主要卡在洛必达法则的使用条件，已整理到错题本。"></textarea>
+        <div class="topic-builder">
+          <div class="field-label">学习主题 <span>可多选，也可自行补充</span></div>
+          <div class="quick-tags" aria-label="快速选择科目">
+            <button class="tag-button" type="button" data-topic="数学">＋ 数学</button>
+            <button class="tag-button" type="button" data-topic="英语">＋ 英语</button>
+            <button class="tag-button" type="button" data-topic="政治">＋ 政治</button>
+            <button class="tag-button" type="button" data-topic="专业课">＋ 专业课</button>
+            <button class="tag-button" type="button" data-topic="复盘">＋ 复盘</button>
+          </div>
+          <div class="topic-entry"><input id="customTopic" maxlength="30" placeholder="例如：牛顿-莱布尼茨、DHCP、TCP"><button class="topic-add" id="addTopic" type="button">添加主题</button></div>
+          <div class="selected-topics" id="selectedTopics"></div>
+          <p class="topic-hint">即使不填写，AI 也会从文字与图片里识别知识点并自动补充。</p>
+        </div>
+
+        <div class="field-label">学习凭证 <span id="photoCount">选填 · 最多 6 张</span></div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" accept="image/jpeg,image/png,image/webp" id="photo" multiple>
+          <div class="upload-empty">
+            <div class="upload-icon" aria-hidden="true">📷</div>
+            <strong>拖入多张照片，或 <label for="photo">选择文件</label></strong>
+            <small>支持 JPG / PNG / WebP，一次最多 6 张<br>AI 会跨图片合并笔记与知识点</small>
+          </div>
+          <div class="preview-grid" id="previewGrid"></div>
+        </div>
+        <div class="privacy-note"><span>🔒</span><span>照片仅在提交时发送给你选择的模型服务，本应用不会在服务器保存照片。</span></div>
+
+        <div class="provider-row">
+          <div class="provider-select-wrap">
+            <label for="provider">AI 评价引擎</label>
+            <select id="provider" aria-describedby="providerState"><option>正在读取配置…</option></select>
+          </div>
+          <div class="provider-state" id="providerState"><span class="state-dot"></span><span>检查中</span></div>
+        </div>
+
+        <details class="ai-settings" id="aiSettings">
+          <summary><span>⚙️ AI 参数</span><small id="settingsSummary">均衡 · 标准 · 8000 tokens</small></summary>
+          <div class="settings-grid">
+            <div class="setting-field">
+              <label for="reasoningMode"><span>推理模式</span><span>速度 / 深度</span></label>
+              <select id="reasoningMode">
+                <option value="fast">快速 · 关闭深度思考</option>
+                <option value="balanced" selected>均衡 · 推荐</option>
+                <option value="deep">深入 · 更仔细核对</option>
+              </select>
+            </div>
+            <div class="setting-field">
+              <label for="detailLevel"><span>复盘深度</span><span>内容篇幅</span></label>
+              <select id="detailLevel">
+                <option value="concise">精简</option>
+                <option value="standard" selected>标准</option>
+                <option value="detailed">详细</option>
+              </select>
+            </div>
+            <div class="setting-field">
+              <label for="maxTokens"><span>输出上限</span><span id="maxTokensValue">8000 tokens</span></label>
+              <input id="maxTokens" type="range" min="2048" max="12000" step="512" value="8192">
+            </div>
+            <div class="setting-field">
+              <label for="temperature"><span>创造性</span><span id="temperatureValue">0.35</span></label>
+              <input id="temperature" type="range" min="0" max="1" step="0.05" value="0.35">
+            </div>
+            <div class="settings-note"><span>DeepSeek 的“快速”会关闭思考输出；其他平台仍会按档位调整提示和预算。</span><button class="settings-reset" id="resetAiSettings" type="button">恢复推荐值</button></div>
+          </div>
+        </details>
+
+        <button class="submit-button" id="submitButton" type="submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="submitLabel">提交并获取 AI 评价</span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </form>
+
+      <aside class="review-column" aria-live="polite">
+        <section class="card review-card">
+          <div class="review-top">
+            <div class="review-kicker"><strong>AI 学习评价</strong><span class="ai-badge" id="modelBadge">等待打卡</span></div>
+            <div class="empty-review" id="emptyReview">
+              <div>
+                <div class="empty-illustration" aria-hidden="true">🧭</div>
+                <h3>你的军师正在待命</h3>
+                <p>提交后会得到综合评分、有效亮点、下一步建议和一个明确的小目标。</p>
+              </div>
+            </div>
+            <div class="result-review" id="resultReview">
+              <div class="score-row">
+                <div class="score-ring" id="scoreRing"><div class="score-value"><strong id="score">--</strong><small>/ 100</small></div></div>
+                <div class="score-copy"><h3 id="reviewTitle">稳稳向前</h3><p id="reviewSummary"></p></div>
+              </div>
+              <div class="discovered-topics" id="discoveredTopics"></div>
+            </div>
+          </div>
+          <div class="review-body result-review" id="reviewBody">
+            <div class="review-block" id="knowledgeBlock"><h4>今日知识复盘</h4><div class="knowledge-review" id="knowledgeReview"></div></div>
+            <div class="review-block" id="highlightsBlock"><h4>值得保持</h4><ul class="review-list" id="highlights"></ul></div>
+            <div class="review-block" id="suggestionsBlock"><h4>下一步优化</h4><ul class="review-list suggestions" id="suggestions"></ul></div>
+            <div class="review-block"><div class="next-goal"><strong>NEXT QUEST</strong><span id="nextGoal"></span></div></div>
+          </div>
+          <div class="reward-strip result-review" id="rewardStrip">
+            <div class="reward"><span>经验</span><strong id="earnedXp">+0</strong></div>
+            <div class="reward"><span>金币</span><strong id="earnedCoin">+0</strong></div>
+            <div class="reward"><span>可信度</span><strong id="credibility">中</strong></div>
+          </div>
+        </section>
+
+        <section class="card history-card" id="historySection">
+          <div class="history-title"><h3>最近战绩</h3><span>仅保存在本机</span></div>
+          <div class="history-list" id="historyList"><div class="history-empty">完成第一次打卡后，战绩会出现在这里。</div></div>
+        </section>
+
+        <section class="card integration-card">
+          <div class="integration-row">
+            <div class="integration-name"><div class="integration-icon">⚔</div><div><strong>Habitica 同步</strong><small id="habiticaMessage">打卡后自动完成对应任务</small></div></div>
+            <span class="integration-status" id="habiticaStatus">检查中</span>
+          </div>
+          <details class="habitica-setup" id="habiticaSetup">
+            <summary><span id="habiticaSetupLabel">一键配置</span></summary>
+            <form class="habitica-form" id="habiticaForm">
+              <label class="habitica-field">User ID<input id="habiticaUserId" name="userId" autocomplete="off" required placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+              <label class="habitica-field">API Token<input id="habiticaApiToken" name="apiToken" type="password" autocomplete="off" required placeholder="仅发送到本机服务与 Habitica"></label>
+              <button class="habitica-connect" id="habiticaConnect" type="submit">⚔ 验证并一键连接</button>
+              <p class="habitica-help">系统会自动生成 Client ID，并复用或创建“考研勇者每日打卡”Daily。Token 不会保存在浏览器。</p>
+            </form>
+          </details>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-dialog">
+      <button class="auth-close" id="authClose" type="button" aria-label="关闭">×</button>
+      <h2 id="authTitle">加入考研勇者</h2>
+      <p id="authIntro">登录后在不同设备同步等级、金币、连胜与学习战绩。</p>
+      <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">登录</button><button class="auth-tab" type="button" data-auth-mode="register">注册</button></div>
+      <form id="authForm">
+        <label class="auth-field">邮箱<input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com"></label>
+        <label class="auth-field">密码<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 位"></label>
+        <button class="auth-submit" id="authSubmit" type="submit">登录</button>
+      </form>
+      <div class="auth-divider">或使用第三方账户</div>
+      <div class="social-buttons"><button class="social-button" type="button" data-social="Google">G&nbsp; Google</button><button class="social-button" type="button" data-social="QQ">Q&nbsp; QQ</button></div>
+      <div class="auth-note" id="authNote">正在检查云端账户服务…</div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "kaoyanHeroV30";
+    const LEGACY_STORAGE_KEY = "kaoyanHeroV21";
+    const AUTH_USERS_KEY = "kaoyanHeroUsers";
+    const AUTH_SESSION_KEY = "kaoyanHeroSession";
+    const AI_SETTINGS_KEY = "kaoyanHeroAiSettings";
+    const state = loadState();
+    let selectedImages = [];
+    let selectedTopics = [];
+    let providers = [];
+    let toastTimer;
+    let authMode = "login";
+    let appConfig = { cloudMode: false, googleAuth: false, dailyAiRequestLimit: 10 };
+    let currentUser = null;
+
+    const $ = (selector) => document.querySelector(selector);
+    const elements = {
+      form: $("#checkinForm"), text: $("#studyText"), charCount: $("#charCount"), photo: $("#photo"),
+      previewGrid: $("#previewGrid"), uploadZone: $("#uploadZone"), photoCount: $("#photoCount"),
+      customTopic: $("#customTopic"), selectedTopics: $("#selectedTopics"),
+      provider: $("#provider"), providerState: $("#providerState"), submit: $("#submitButton"), submitLabel: $("#submitLabel"),
+      reasoningMode: $("#reasoningMode"), detailLevel: $("#detailLevel"), maxTokens: $("#maxTokens"), temperature: $("#temperature"),
+      toast: $("#toast"), emptyReview: $("#emptyReview"), resultReview: $("#resultReview"), reviewBody: $("#reviewBody"),
+      rewardStrip: $("#rewardStrip"), modelBadge: $("#modelBadge"), historyList: $("#historyList"),
+      accountButton: $("#accountButton"), authModal: $("#authModal"), authForm: $("#authForm"),
+      habiticaSetup: $("#habiticaSetup"), habiticaForm: $("#habiticaForm"), habiticaConnect: $("#habiticaConnect")
+    };
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
+        return { xp: 0, coin: 0, streak: 0, lastDate: "", history: [], ...saved };
+      } catch {
+        return { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] };
+      }
+    }
+
+    function saveState() { if (!appConfig.cloudMode) localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function localDateKey(date = new Date()) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
+
+    function updateDashboard() {
+      const level = Math.floor(state.xp / 500) + 1;
+      const currentXp = state.xp % 500;
+      $("#level").textContent = `Lv.${level}`;
+      $("#xp").textContent = state.xp.toLocaleString("zh-CN");
+      $("#coin").textContent = `🪙 ${state.coin.toLocaleString("zh-CN")}`;
+      $("#streak").textContent = `🔥 ${state.streak} 天连胜`;
+      $("#xpText").textContent = `${currentXp} / 500 XP`;
+      $("#xpProgress").style.width = `${(currentXp / 500) * 100}%`;
+      renderHistory();
+    }
+
+    function updateStreak() {
+      const today = localDateKey();
+      if (state.lastDate === today) return;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      state.streak = state.lastDate === localDateKey(yesterday) ? state.streak + 1 : 1;
+      state.lastDate = today;
+    }
+
+    function renderHistory() {
+      if (!state.history.length) {
+        elements.historyList.innerHTML = '<div class="history-empty">完成第一次打卡后，战绩会出现在这里。</div>';
+        return;
+      }
+      elements.historyList.innerHTML = state.history.slice(0, 5).map((item) => `
+        <div class="history-item">
+          <div class="history-score">${Number(item.score) || 0}</div>
+          <div class="history-content"><strong>${escapeHtml(item.title || "学习打卡")}</strong><span>${escapeHtml(item.date || formatCloudDate(item.createdAt))} · ${escapeHtml(item.provider || "AI")}</span></div>
+          <div class="history-reward">+${Number(item.xp) || 0} XP</div>
+        </div>`).join("");
+    }
+
+    function formatCloudDate(value) {
+      if (!value) return "今天";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "最近" : new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(date);
+    }
+
+    function applyCloudState(data) {
+      const profile = data?.profile || {};
+      state.xp = Number(profile.xp || 0);
+      state.coin = Number(profile.coin || 0);
+      state.streak = Number(profile.streak || 0);
+      state.lastDate = profile.lastDate || "";
+      state.history = Array.isArray(data?.history) ? data.history : [];
+      if (data?.preferences) {
+        localStorage.setItem("kaoyanAiProvider", data.preferences.provider || "glm");
+        applyAiSettings({
+          reasoningMode: data.preferences.reasoning_mode,
+          detailLevel: data.preferences.detail_level,
+          maxTokens: data.preferences.max_tokens,
+          temperature: data.preferences.temperature,
+        });
+        if (providers.some((item) => item.id === data.preferences.provider)) {
+          elements.provider.value = data.preferences.provider;
+          updateProviderState();
+        }
+      }
+      updateDashboard();
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    }
+
+    function showToast(message, type = "") {
+      clearTimeout(toastTimer);
+      elements.toast.textContent = message;
+      elements.toast.className = `toast show ${type}`.trim();
+      toastTimer = setTimeout(() => elements.toast.className = "toast", 4200);
+    }
+
+    function addTopic(value) {
+      const topic = String(value || "").trim().slice(0, 30);
+      if (!topic || selectedTopics.includes(topic)) return;
+      if (selectedTopics.length >= 10) return showToast("最多添加 10 个主题", "error");
+      selectedTopics.push(topic);
+      renderTopics();
+    }
+
+    function toggleTopic(topic) {
+      selectedTopics = selectedTopics.includes(topic) ? selectedTopics.filter((item) => item !== topic) : [...selectedTopics, topic];
+      renderTopics();
+    }
+
+    function renderTopics() {
+      elements.selectedTopics.innerHTML = selectedTopics.map((topic) => `<span class="selected-topic">${escapeHtml(topic)}<button type="button" data-remove-topic="${escapeHtml(topic)}" aria-label="移除 ${escapeHtml(topic)}">×</button></span>`).join("");
+      document.querySelectorAll("[data-topic]").forEach((button) => button.classList.toggle("active", selectedTopics.includes(button.dataset.topic)));
+    }
+
+    async function loadProviders() {
+      try {
+        const response = await fetch("/api/providers");
+        const data = await response.json();
+        providers = data.providers || [];
+        const savedProvider = localStorage.getItem("kaoyanAiProvider") || "glm";
+        elements.provider.innerHTML = providers.map((provider) =>
+          `<option value="${escapeHtml(provider.id)}" ${provider.id === savedProvider ? "selected" : ""}>${escapeHtml(provider.name)} · ${escapeHtml(provider.model || "未填写模型")}</option>`
+        ).join("");
+        if (!providers.some((provider) => provider.id === elements.provider.value)) elements.provider.value = providers[0]?.id || "";
+        updateProviderState();
+      } catch {
+        elements.provider.innerHTML = '<option value="">无法读取服务端配置</option>';
+        elements.providerState.innerHTML = '<span class="state-dot"></span><span>连接失败</span>';
+        showToast("无法连接本地服务，请用 npm start 启动网页", "error");
+      }
+    }
+
+    function updateProviderState() {
+      const current = providers.find((item) => item.id === elements.provider.value);
+      const ready = Boolean(current?.configured);
+      elements.providerState.classList.toggle("ready", ready);
+      elements.providerState.innerHTML = `<span class="state-dot"></span><span>${ready ? "已配置" : "待配置 .env"}</span>`;
+      elements.submit.disabled = !current;
+      localStorage.setItem("kaoyanAiProvider", elements.provider.value);
+    }
+
+    function loadAiSettings() {
+      const defaults = { reasoningMode: "balanced", detailLevel: "standard", maxTokens: 8192, temperature: 0.35 };
+      try {
+        return { ...defaults, ...JSON.parse(localStorage.getItem(AI_SETTINGS_KEY) || "{}") };
+      } catch {
+        return defaults;
+      }
+    }
+
+    function applyAiSettings(settings = loadAiSettings()) {
+      elements.reasoningMode.value = ["fast", "balanced", "deep"].includes(settings.reasoningMode) ? settings.reasoningMode : "balanced";
+      elements.detailLevel.value = ["concise", "standard", "detailed"].includes(settings.detailLevel) ? settings.detailLevel : "standard";
+      const maxTokens = Number(settings.maxTokens);
+      const temperature = Number(settings.temperature);
+      elements.maxTokens.value = Math.max(2048, Math.min(12000, Number.isFinite(maxTokens) ? maxTokens : 8192));
+      elements.temperature.value = Math.max(0, Math.min(1, Number.isFinite(temperature) ? temperature : 0.35));
+      updateAiSettings();
+    }
+
+    function updateAiSettings() {
+      const settings = {
+        reasoningMode: elements.reasoningMode.value,
+        detailLevel: elements.detailLevel.value,
+        maxTokens: Number(elements.maxTokens.value),
+        temperature: Number(elements.temperature.value),
+      };
+      const reasoningLabel = { fast: "快速", balanced: "均衡", deep: "深入" }[settings.reasoningMode];
+      const detailLabel = { concise: "精简", standard: "标准", detailed: "详细" }[settings.detailLevel];
+      $("#maxTokensValue").textContent = `${settings.maxTokens} tokens`;
+      $("#temperatureValue").textContent = settings.temperature.toFixed(2);
+      $("#settingsSummary").textContent = `${reasoningLabel} · ${detailLabel} · ${settings.maxTokens} tokens`;
+      localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings));
+      return settings;
+    }
+
+    async function prepareImages(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+      const remaining = 6 - selectedImages.length;
+      if (remaining <= 0) return showToast("最多上传 6 张图片", "error");
+      if (files.length > remaining) showToast(`本次只添加前 ${remaining} 张图片`, "error");
+      for (const file of files.slice(0, remaining)) {
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+          showToast(`${file.name} 不是支持的图片格式`, "error");
+          continue;
+        }
+        if (file.size > 12 * 1024 * 1024) {
+          showToast(`${file.name} 超过 12MB`, "error");
+          continue;
+        }
+        try {
+          selectedImages.push({ name: file.name, data: await compressImage(file, 1440, .78) });
+        } catch {
+          showToast(`${file.name} 读取失败`, "error");
+        }
+      }
+      elements.photo.value = "";
+      renderImagePreviews();
+    }
+
+    function compressImage(file, maxSide, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => {
+          const image = new Image();
+          image.onerror = reject;
+          image.onload = () => {
+            const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+          };
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderImagePreviews() {
+      elements.uploadZone.classList.toggle("has-image", selectedImages.length > 0);
+      elements.photoCount.textContent = selectedImages.length ? `已选 ${selectedImages.length} / 6 张` : "选填 · 最多 6 张";
+      elements.previewGrid.innerHTML = selectedImages.map((image, index) => `<div class="preview-item"><img src="${image.data}" alt="学习照片 ${index + 1}"><span>${index + 1} / ${selectedImages.length}</span><button type="button" data-remove-image="${index}" aria-label="移除第 ${index + 1} 张">×</button></div>`).join("") + (selectedImages.length < 6 ? '<label class="add-more-photo" for="photo">＋<br>继续添加</label>' : "");
+    }
+
+    function removeImage(index) {
+      selectedImages.splice(index, 1);
+      renderImagePreviews();
+    }
+
+    function listHtml(items) { return (items || []).map((item) => `<li>${escapeHtml(item)}</li>`).join(""); }
+
+    function topicReviewHtml(topics) {
+      return (topics || []).map((topic, index) => `
+        <details class="knowledge-card" ${index === 0 ? "open" : ""}>
+          <summary><span><strong>${escapeHtml(topic.name)}</strong><small>${escapeHtml(topic.sourceEvidence || "根据本次记录识别")}</small></span></summary>
+          <div class="knowledge-content">
+            <p>${escapeHtml(topic.recap)}</p>
+            ${topic.connections?.length ? `<ul class="connection-list">${topic.connections.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
+            ${(topic.practiceTypes || []).map((practice) => `<div class="practice-card"><strong>${escapeHtml(practice.name)}</strong><span>${escapeHtml(practice.focus)}</span><em>练一练：${escapeHtml(practice.starterQuestion)}</em></div>`).join("")}
+          </div>
+        </details>`).join("");
+    }
+
+    function showReview(data) {
+      const { review, rewards, meta } = data;
+      elements.emptyReview.style.display = "none";
+      elements.resultReview.style.display = "block";
+      elements.reviewBody.style.display = "block";
+      elements.rewardStrip.style.display = "grid";
+      $("#score").textContent = review.score;
+      $("#scoreRing").style.setProperty("--score", review.score);
+      $("#reviewTitle").textContent = review.title;
+      $("#reviewSummary").textContent = review.summary;
+      $("#discoveredTopics").innerHTML = (review.discoveredTopics || []).map((topic) => `<span class="discovered-topic">${escapeHtml(topic)}</span>`).join("");
+      $("#knowledgeReview").innerHTML = topicReviewHtml(review.topicReviews);
+      $("#knowledgeBlock").style.display = review.topicReviews?.length ? "block" : "none";
+      $("#highlights").innerHTML = listHtml(review.highlights.length ? review.highlights : review.detectedEvidence);
+      $("#suggestions").innerHTML = listHtml(review.suggestions);
+      $("#highlightsBlock").style.display = (review.highlights.length || review.detectedEvidence.length) ? "block" : "none";
+      $("#suggestionsBlock").style.display = review.suggestions.length ? "block" : "none";
+      $("#nextGoal").textContent = review.nextGoal;
+      $("#earnedXp").textContent = `+${rewards.xp}`;
+      $("#earnedCoin").textContent = `+${rewards.coin}`;
+      $("#credibility").textContent = ({ high: "高", medium: "中", low: "低" })[review.credibility] || "中";
+      elements.modelBadge.textContent = `${meta.provider} · ${meta.model}`;
+      if (data.habitica?.configured) {
+        $("#habiticaStatus").classList.toggle("ready", data.habitica.synced);
+        $("#habiticaStatus").textContent = data.habitica.synced ? "已同步" : "同步失败";
+        $("#habiticaMessage").textContent = data.habitica.message;
+      }
+    }
+
+    async function submitCheckin(event) {
+      event.preventDefault();
+      const text = elements.text.value.trim();
+      const current = providers.find((item) => item.id === elements.provider.value);
+      if (appConfig.cloudMode && !currentUser) {
+        openAuth();
+        return showToast("请先登录云端账户再打卡", "error");
+      }
+      if (text.length < 5 && !selectedImages.length) return showToast("至少写 5 个字，或上传学习照片", "error");
+      if (!current?.configured) return showToast(`${current?.name || "该平台"} 尚未配置 API Key，请先填写 .env`, "error");
+
+      elements.submit.disabled = true;
+      elements.submit.classList.add("loading");
+      elements.submitLabel.textContent = selectedImages.length ? `AI 正在阅读 ${selectedImages.length} 张照片…` : "AI 正在分析学习记录…";
+      try {
+        const response = await fetch("/api/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: current.id, text, images: selectedImages.map((image) => image.data), topics: selectedTopics, aiOptions: updateAiSettings(), syncHabitica: true })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "AI 评价失败");
+        if (appConfig.cloudMode && data.cloudState) {
+          applyCloudState(data.cloudState);
+        } else {
+          updateStreak();
+          state.xp += data.rewards.xp;
+          state.coin += data.rewards.coin;
+          state.history.unshift({
+            score: data.review.score,
+            title: data.review.title,
+            date: new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(new Date()),
+            provider: data.meta.provider,
+            xp: data.rewards.xp
+          });
+          state.history = state.history.slice(0, 20);
+          saveState();
+          updateDashboard();
+        }
+        showReview(data);
+        const syncNote = data.habitica?.synced ? "，Habitica 已同步" : "";
+        showToast(`打卡成功，获得 ${data.rewards.xp} XP 和 ${data.rewards.coin} 金币${syncNote}`);
+        if (window.innerWidth < 880) $(".review-card").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        showToast(error.message || "AI 评价失败，请稍后重试", "error");
+      } finally {
+        elements.submit.disabled = false;
+        elements.submit.classList.remove("loading");
+        elements.submitLabel.textContent = "提交并获取 AI 评价";
+      }
+    }
+
+    async function loadIntegrations() {
+      try {
+        const response = await fetch("/api/integrations");
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        const ready = Boolean(data.habitica?.configured);
+        $("#habiticaStatus").classList.toggle("ready", ready);
+        $("#habiticaStatus").textContent = ready ? "已连接" : "待配置";
+        $("#habiticaMessage").textContent = ready ? "打卡成功后自动同步任务" : "只需 User ID 与 API Token";
+        $("#habiticaSetupLabel").textContent = ready ? "重新配置" : "一键配置";
+        if (!ready && (!appConfig.cloudMode || currentUser)) elements.habiticaSetup.open = true;
+        if (appConfig.cloudMode && !currentUser) {
+          $("#habiticaStatus").textContent = "登录后配置";
+          $("#habiticaMessage").textContent = "每个账户拥有独立的 Habitica 连接";
+          elements.habiticaSetup.open = false;
+        }
+      } catch {
+        $("#habiticaStatus").textContent = "重启服务";
+        $("#habiticaMessage").textContent = "新功能需要重新运行 npm start";
+      }
+    }
+
+    async function connectHabitica(event) {
+      event.preventDefault();
+      if (appConfig.cloudMode && !currentUser) {
+        openAuth();
+        return showToast("请先登录云端账户", "error");
+      }
+      const userId = $("#habiticaUserId").value.trim();
+      const apiTokenInput = $("#habiticaApiToken");
+      const apiToken = apiTokenInput.value.trim();
+      if (!userId || !apiToken) return showToast("请填写 Habitica User ID 和 API Token", "error");
+      elements.habiticaConnect.disabled = true;
+      elements.habiticaConnect.textContent = "正在验证并配置…";
+      try {
+        const response = await fetch("/api/habitica/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, apiToken }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Habitica 配置失败");
+        $("#habiticaStatus").classList.add("ready");
+        $("#habiticaStatus").textContent = "已连接";
+        $("#habiticaMessage").textContent = data.habitica.created ? "已创建专用 Daily 并完成连接" : "已复用专用 Daily 并完成连接";
+        $("#habiticaSetupLabel").textContent = "重新配置";
+        elements.habiticaSetup.open = false;
+        showToast(`Habitica 连接成功：${data.habitica.task.text}`);
+      } catch (error) {
+        showToast(error.message || "Habitica 配置失败", "error");
+      } finally {
+        apiTokenInput.value = "";
+        elements.habiticaConnect.disabled = false;
+        elements.habiticaConnect.textContent = "⚔ 验证并一键连接";
+      }
+    }
+
+    function getSession() {
+      if (appConfig.cloudMode) return currentUser;
+      try { return JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)); } catch { return null; }
+    }
+
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(AUTH_USERS_KEY)) || []; } catch { return []; }
+    }
+
+    async function passwordHash(password, salt) {
+      const bytes = new TextEncoder().encode(`${salt}:${password}`);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      return Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
+    }
+
+    function updateAccountUI() {
+      const session = getSession();
+      elements.accountButton.textContent = session?.email ? `👤 ${session.email.split("@")[0]}` : "登录 / 注册";
+      elements.accountButton.title = session?.email ? `已登录：${session.email}；点击可退出` : appConfig.cloudMode ? "登录云端账户" : "登录本机账户";
+    }
+
+    async function openAuth() {
+      if (getSession()?.email) {
+        if (window.confirm(appConfig.cloudMode ? "要退出当前云端账户吗？" : "要退出当前本机账户吗？")) {
+          if (appConfig.cloudMode) {
+            await fetch("/api/auth/logout", { method: "POST" });
+            currentUser = null;
+            Object.assign(state, { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] });
+            updateDashboard();
+            loadIntegrations();
+          } else {
+            localStorage.removeItem(AUTH_SESSION_KEY);
+          }
+          updateAccountUI();
+          showToast("已退出账户");
+        }
+        return;
+      }
+      elements.authModal.classList.add("open");
+      $("#authEmail").focus();
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.querySelectorAll("[data-auth-mode]").forEach((button) => button.classList.toggle("active", button.dataset.authMode === mode));
+      $("#authSubmit").textContent = mode === "register" ? (appConfig.cloudMode ? "创建云端账户" : "创建本机账户") : "登录";
+      $("#authPassword").autocomplete = mode === "register" ? "new-password" : "current-password";
+    }
+
+    async function handleAuth(event) {
+      event.preventDefault();
+      const email = $("#authEmail").value.trim().toLowerCase();
+      const password = $("#authPassword").value;
+      if (!email || password.length < 6) return showToast("请输入有效邮箱和至少 6 位密码", "error");
+      if (appConfig.cloudMode) {
+        const submit = $("#authSubmit");
+        submit.disabled = true;
+        submit.textContent = authMode === "register" ? "正在注册…" : "正在登录…";
+        try {
+          const response = await fetch(authMode === "register" ? "/api/auth/register" : "/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "账户操作失败");
+          if (data.needsEmailConfirmation) {
+            setAuthMode("login");
+            return showToast("注册成功，请先到邮箱完成验证", "error");
+          }
+          currentUser = data.user;
+          elements.authModal.classList.remove("open");
+          elements.authForm.reset();
+          updateAccountUI();
+          await loadCloudState();
+          await loadIntegrations();
+          showToast(authMode === "register" ? "云端账户创建成功" : "云端登录成功");
+        } catch (error) {
+          showToast(error.message || "账户操作失败", "error");
+        } finally {
+          submit.disabled = false;
+          setAuthMode(authMode);
+        }
+        return;
+      }
+      const users = getUsers();
+      const existing = users.find((user) => user.email === email);
+      if (authMode === "register") {
+        if (existing) return showToast("该邮箱已在本机注册", "error");
+        const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+        const salt = Array.from(saltBytes).map((value) => value.toString(16).padStart(2, "0")).join("");
+        users.push({ email, salt, passwordHash: await passwordHash(password, salt) });
+        localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+      } else {
+        if (!existing || existing.passwordHash !== await passwordHash(password, existing.salt)) return showToast("邮箱或密码不正确", "error");
+      }
+      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ email }));
+      elements.authModal.classList.remove("open");
+      elements.authForm.reset();
+      updateAccountUI();
+      showToast(authMode === "register" ? "注册成功，已登录" : "登录成功");
+    }
+
+    async function completeOAuthFromHash() {
+      const params = new URLSearchParams(location.hash.startsWith("#") ? location.hash.slice(1) : "");
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (!accessToken || !refreshToken) return;
+      history.replaceState(null, "", `${location.pathname}${location.search}`);
+      const response = await fetch("/api/auth/oauth-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, refreshToken, expiresIn: params.get("expires_in") }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Google 登录失败");
+      currentUser = data.user;
+      showToast("Google 登录成功");
+    }
+
+    async function loadCloudState() {
+      if (!appConfig.cloudMode || !currentUser) return;
+      const response = await fetch("/api/user/state");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "无法读取云端学习数据");
+      applyCloudState(data);
+    }
+
+    async function loadAppConfig() {
+      try {
+        const response = await fetch("/api/config");
+        appConfig = { ...appConfig, ...(await response.json()) };
+        if (appConfig.cloudMode) {
+          $("#authIntro").textContent = "登录后在不同设备同步等级、金币、连胜与学习战绩。";
+          $("#authNote").textContent = appConfig.googleAuth ? "支持邮箱与 Google 登录；QQ 登录将在后续接入。" : "当前支持邮箱登录；Google 需在 Supabase 控制台启用。";
+          await completeOAuthFromHash();
+          if (!currentUser) {
+            const sessionResponse = await fetch("/api/auth/me");
+            const sessionData = await sessionResponse.json();
+            currentUser = sessionData.user;
+          }
+          if (!currentUser) {
+            Object.assign(state, { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] });
+            updateDashboard();
+          }
+        } else {
+          $("#authIntro").textContent = "当前为本机演示模式，配置 Supabase 后自动切换为云端账户。";
+          $("#authNote").textContent = "本机账户和战绩仅保存在此浏览器。";
+        }
+      } catch (error) {
+        showToast(error.message || "云端配置检查失败", "error");
+      }
+      updateAccountUI();
+    }
+
+    function handleSocialAuth(provider) {
+      if (provider === "Google" && appConfig.cloudMode && appConfig.googleAuth) {
+        location.assign("/api/auth/oauth/google");
+        return;
+      }
+      const message = provider === "QQ"
+        ? "QQ OAuth 需要单独接入 QQ 互联，当前版本先使用邮箱或 Google"
+        : appConfig.cloudMode ? "请先在 Supabase 控制台启用 Google Provider" : "配置 Supabase 后可启用 Google 登录";
+      showToast(message, "error");
+    }
+
+    elements.text.addEventListener("input", () => elements.charCount.textContent = `${elements.text.value.length} / 4000`);
+    elements.provider.addEventListener("change", updateProviderState);
+    [elements.reasoningMode, elements.detailLevel, elements.maxTokens, elements.temperature].forEach((control) => control.addEventListener("input", updateAiSettings));
+    $("#resetAiSettings").addEventListener("click", () => applyAiSettings({ reasoningMode: "balanced", detailLevel: "standard", maxTokens: 8192, temperature: 0.35 }));
+    elements.photo.addEventListener("change", (event) => prepareImages(event.target.files));
+    elements.form.addEventListener("submit", submitCheckin);
+    document.querySelectorAll("[data-topic]").forEach((button) => button.addEventListener("click", () => toggleTopic(button.dataset.topic)));
+    $("#addTopic").addEventListener("click", () => { addTopic(elements.customTopic.value); elements.customTopic.value = ""; elements.customTopic.focus(); });
+    elements.customTopic.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); $("#addTopic").click(); } });
+    elements.selectedTopics.addEventListener("click", (event) => { const button = event.target.closest("[data-remove-topic]"); if (button) toggleTopic(button.dataset.removeTopic); });
+    elements.previewGrid.addEventListener("click", (event) => { const button = event.target.closest("[data-remove-image]"); if (button) removeImage(Number(button.dataset.removeImage)); });
+    ["dragenter", "dragover"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.add("dragover"); }));
+    ["dragleave", "drop"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.remove("dragover"); }));
+    elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
+    elements.accountButton.addEventListener("click", openAuth);
+    $("#authClose").addEventListener("click", () => elements.authModal.classList.remove("open"));
+    elements.authModal.addEventListener("click", (event) => { if (event.target === elements.authModal) elements.authModal.classList.remove("open"); });
+    document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
+    document.querySelectorAll("[data-social]").forEach((button) => button.addEventListener("click", () => handleSocialAuth(button.dataset.social)));
+    elements.authForm.addEventListener("submit", handleAuth);
+    elements.habiticaForm.addEventListener("submit", connectHabitica);
+
+    async function bootstrap() {
+      $("#todayLabel").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
+      updateDashboard();
+      updateAccountUI();
+      renderTopics();
+      applyAiSettings();
+      await loadAppConfig();
+      await loadProviders();
+      if (appConfig.cloudMode && currentUser) {
+        try { await loadCloudState(); } catch (error) { showToast(error.message, "error"); }
+      }
+      await loadIntegrations();
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
