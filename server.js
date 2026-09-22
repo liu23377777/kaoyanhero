@@ -636,6 +636,37 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/health") {
       return json(res, 200, { ok: true });
     }
+    if (req.method === "POST" && url.pathname === "/api/admin/login") {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      const result = await cloud.adminLogin(req, res, await readJson(req));
+      return json(res, 200, result);
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/logout") {
+      cloud.adminLogout(req, res);
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === "GET" && url.pathname === "/api/admin/session") {
+      return json(res, 200, { authenticated: cloud.isAdminRequest(req) });
+    }
+    if (req.method === "GET" && url.pathname === "/api/admin/users") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { users: await cloud.adminListUsers() });
+    }
+    if (req.method === "POST" && url.pathname.startsWith("/api/admin/users/") && (url.pathname.endsWith("/approve") || url.pathname.endsWith("/revoke"))) {
+      cloud.requireAdmin(req);
+      const segments = url.pathname.split("/");
+      const userId = segments[4];
+      const action = segments[5];
+      await cloud.adminSetApproval(userId, action === "approve");
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === "GET" && url.pathname.startsWith("/api/admin/users/") && url.pathname.endsWith("/checkins")) {
+      cloud.requireAdmin(req);
+      const segments = url.pathname.split("/");
+      const userId = segments[4];
+      const checkins = await cloud.adminListUserCheckins(userId);
+      return json(res, 200, { checkins });
+    }
     if (req.method === "POST" && url.pathname === "/api/evaluate") {
       if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
       const cloudSession = cloud.configured() ? await cloud.requireSession(req, res) : null;

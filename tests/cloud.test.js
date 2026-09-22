@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const http = require("node:http");
 
 process.env.APP_ENCRYPTION_KEY = "test-only-encryption-key-at-least-32-characters";
+process.env.ADMIN_PASSWORD = "test-only-admin-password";
 const cloud = require("../cloud");
 
 test("encrypts and decrypts user secrets", () => {
@@ -61,4 +62,32 @@ test("creates HttpOnly cookies and restores a Supabase session", async (t) => {
   const cookie = responseHeaders["Set-Cookie"].map((line) => line.split(";")[0]).join("; ");
   const session = await cloud.sessionFromRequest({ headers: { cookie } }, fakeResponse);
   assert.equal(session.user.id, "user-1");
+});
+
+test("rejects admin login with a wrong password", async () => {
+  const fakeResponse = { setHeader() {} };
+  await assert.rejects(
+    () => cloud.adminLogin({ headers: {} }, fakeResponse, { password: "wrong-password" }),
+    (error) => error.status === 401,
+  );
+});
+
+test("accepts a correct admin password and issues a verifiable session cookie", async () => {
+  const responseHeaders = {};
+  const fakeResponse = { setHeader(name, value) { responseHeaders[name] = value; } };
+  const result = await cloud.adminLogin({ headers: {} }, fakeResponse, { password: "test-only-admin-password" });
+  assert.equal(result.ok, true);
+  const setCookie = responseHeaders["Set-Cookie"];
+  assert.match(setCookie, /kh_admin=/);
+  assert.match(setCookie, /HttpOnly/);
+  const cookieValue = setCookie.split(";")[0];
+  const adminReq = { headers: { cookie: cookieValue } };
+  assert.equal(cloud.isAdminRequest(adminReq), true);
+  assert.doesNotThrow(() => cloud.requireAdmin(adminReq));
+});
+
+test("rejects a tampered or missing admin session cookie", () => {
+  assert.equal(cloud.isAdminRequest({ headers: {} }), false);
+  assert.equal(cloud.isAdminRequest({ headers: { cookie: "kh_admin=1234567890.deadbeef" } }), false);
+  assert.throws(() => cloud.requireAdmin({ headers: {} }), (error) => error.status === 401);
 });

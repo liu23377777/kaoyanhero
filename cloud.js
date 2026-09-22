@@ -2,6 +2,8 @@ const crypto = require("node:crypto");
 
 const ACCESS_COOKIE = "kh_access";
 const REFRESH_COOKIE = "kh_refresh";
+const ADMIN_COOKIE = "kh_admin";
+const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
 
 function configured() {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
@@ -29,9 +31,14 @@ async function supabaseRequest(apiPath, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeout || 15_000);
   const anonKey = process.env.SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (options.useServiceRole && !serviceKey) {
+    throw Object.assign(new Error("SUPABASE_SERVICE_ROLE_KEY 尚未配置"), { status: 503 });
+  }
+  const authKey = options.useServiceRole ? serviceKey : (options.accessToken || anonKey);
   const headers = {
-    apikey: anonKey,
-    Authorization: `Bearer ${options.accessToken || anonKey}`,
+    apikey: options.useServiceRole ? serviceKey : anonKey,
+    Authorization: `Bearer ${authKey}`,
     ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
     ...(options.prefer ? { Prefer: options.prefer } : {}),
     ...options.headers,
@@ -193,17 +200,18 @@ function restPath(table, query = "") {
 async function getUserState(session) {
   const userId = encodeURIComponent(session.user.id);
   const [profiles, checkins, preferences] = await Promise.all([
-    supabaseRequest(restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date`), { accessToken: session.accessToken }),
+    supabaseRequest(restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approved`), { accessToken: session.accessToken }),
     supabaseRequest(restPath("checkins", `user_id=eq.${userId}&select=id,score,title,provider,xp,created_at&order=created_at.desc&limit=20`), { accessToken: session.accessToken }),
     supabaseRequest(restPath("ai_preferences", `user_id=eq.${userId}&select=provider,reasoning_mode,detail_level,max_tokens,temperature&limit=1`), { accessToken: session.accessToken }),
   ]);
-  const profile = profiles.data?.[0] || { xp: 0, coin: 0, streak: 0, last_date: null };
+  const profile = profiles.data?.[0] || { xp: 0, coin: 0, streak: 0, last_date: null, approved: false };
   return {
     profile: {
       xp: Number(profile.xp || 0),
       coin: Number(profile.coin || 0),
       streak: Number(profile.streak || 0),
       lastDate: profile.last_date || "",
+      approved: Boolean(profile.approved),
     },
     history: (checkins.data || []).map((item) => ({
       id: item.id,
@@ -244,6 +252,9 @@ async function assertWithinDailyLimit(session) {
   } catch (error) {
     if (String(error.message).includes("DAILY_AI_LIMIT_REACHED")) {
       throw Object.assign(new Error(`今日 AI 打卡次数已达到上限（${dailyLimit()} 次）`), { status: 429 });
+    }
+    if (String(error.message).includes("ACCOUNT_PENDING_APPROVAL")) {
+      throw Object.assign(new Error("账号正在等待管理员审核通过，暂时无法使用打卡功能"), { status: 403 });
     }
     throw error;
   }
@@ -329,6 +340,140 @@ function googleOAuthUrl(req) {
   return `${supabaseBase()}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
 }
 
+// ---- Admin panel（新用户审核）----
+
+function adminSecret() {
+  const secret = String(process.env.ADMIN_PASSWORD || "");
+  if (!secret) throw Object.assign(new Error("管理员功能尚未配置 ADMIN_PASSWORD"), { status: 503 });
+  return secret;
+}
+
+function signAdminToken(expiresAt) {
+  const hmac = crypto.createHmac("sha256", adminSecret()).update(String(expiresAt)).digest("hex");
+  return `${expiresAt}.${hmac}`;
+}
+
+function verifyAdminToken(token) {
+  if (!token || typeof token !== "string") return false;
+  const [expiresAtStr, hmac] = token.split(".");
+  const expiresAt = Number(expiresAtStr);
+  if (!expiresAt || Date.now() > expiresAt || !hmac) return false;
+  let expected;
+  try {
+    expected = crypto.createHmac("sha256", adminSecret()).update(String(expiresAt)).digest("hex");
+  } catch {
+    return false;
+  }
+  try {
+    const a = Buffer.from(hmac, "hex");
+    const b = Buffer.from(expected, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+function passwordsMatch(a, b) {
+  const hashA = crypto.createHash("sha256").update(String(a)).digest();
+  const hashB = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
+async function adminLogin(req, res, payload) {
+  const password = String(payload?.password || "");
+  const expected = String(process.env.ADMIN_PASSWORD || "");
+  if (!expected) throw Object.assign(new Error("管理员登录尚未在服务端配置（缺少 ADMIN_PASSWORD）"), { status: 503 });
+  if (!password || !passwordsMatch(password, expected)) {
+    throw Object.assign(new Error("管理员密码不正确"), { status: 401 });
+  }
+  const expiresAt = Date.now() + ADMIN_SESSION_MS;
+  const token = signAdminToken(expiresAt);
+  res.setHeader("Set-Cookie", cookieLine(req, ADMIN_COOKIE, token, Math.floor(ADMIN_SESSION_MS / 1000)));
+  return { ok: true };
+}
+
+function adminLogout(req, res) {
+  res.setHeader("Set-Cookie", cookieLine(req, ADMIN_COOKIE, "", 0));
+}
+
+function isAdminRequest(req) {
+  const cookies = parseCookies(req);
+  return verifyAdminToken(cookies[ADMIN_COOKIE]);
+}
+
+function requireAdmin(req) {
+  if (!isAdminRequest(req)) throw Object.assign(new Error("请先登录管理员账户"), { status: 401 });
+}
+
+async function adminListAuthUsers() {
+  const perPage = 200;
+  let page = 1;
+  let all = [];
+  for (let i = 0; i < 10; i += 1) {
+    const { data } = await supabaseRequest(`/auth/v1/admin/users?page=${page}&per_page=${perPage}`, { useServiceRole: true });
+    const users = Array.isArray(data?.users) ? data.users : [];
+    all = all.concat(users.map((user) => ({ id: user.id, email: user.email })));
+    if (users.length < perPage) break;
+    page += 1;
+  }
+  return all;
+}
+
+async function adminListUsers() {
+  const [{ data: profileRows }, authUsers] = await Promise.all([
+    supabaseRequest(restPath("profiles", "select=id,xp,coin,streak,approved,created_at&order=created_at.desc&limit=500"), { useServiceRole: true }),
+    adminListAuthUsers(),
+  ]);
+  const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  return (profileRows || []).map((row) => ({
+    id: row.id,
+    email: emailById.get(row.id) || "(未知邮箱)",
+    approved: Boolean(row.approved),
+    xp: Number(row.xp || 0),
+    coin: Number(row.coin || 0),
+    streak: Number(row.streak || 0),
+    createdAt: row.created_at,
+  }));
+}
+
+async function adminSetApproval(userId, approved) {
+  const id = String(userId || "").trim();
+  if (!/^[0-9a-f-]{20,64}$/i.test(id)) throw Object.assign(new Error("用户 ID 不正确"), { status: 400 });
+  await supabaseRequest(restPath("profiles", `id=eq.${encodeURIComponent(id)}`), {
+    method: "PATCH",
+    useServiceRole: true,
+    prefer: "return=minimal",
+    body: { approved: Boolean(approved) },
+  });
+}
+
+async function adminListUserCheckins(userId, limit = 50) {
+  const id = String(userId || "").trim();
+  if (!/^[0-9a-f-]{20,64}$/i.test(id)) throw Object.assign(new Error("用户 ID 不正确"), { status: 400 });
+  const safeLimit = Math.max(1, Math.min(200, Number(limit) || 50));
+  const { data } = await supabaseRequest(
+    restPath(
+      "checkins",
+      `user_id=eq.${encodeURIComponent(id)}&select=id,study_text,topics,photo_count,score,title,review,provider,model,xp,coin,created_at&order=created_at.desc&limit=${safeLimit}`,
+    ),
+    { useServiceRole: true },
+  );
+  return (data || []).map((row) => ({
+    id: row.id,
+    studyText: row.study_text || "",
+    topics: Array.isArray(row.topics) ? row.topics : [],
+    photoCount: Number(row.photo_count || 0),
+    score: Number(row.score || 0),
+    title: row.title || "学习打卡",
+    review: row.review || null,
+    provider: row.provider || "",
+    model: row.model || "",
+    xp: Number(row.xp || 0),
+    coin: Number(row.coin || 0),
+    createdAt: row.created_at,
+  }));
+}
+
 module.exports = {
   configured,
   publicConfig,
@@ -345,5 +490,12 @@ module.exports = {
   saveHabiticaConnection,
   getHabiticaConnection,
   googleOAuthUrl,
+  adminLogin,
+  adminLogout,
+  isAdminRequest,
+  requireAdmin,
+  adminListUsers,
+  adminSetApproval,
+  adminListUserCheckins,
   _test: { parseCookies, encryptSecret, decryptSecret },
 };
