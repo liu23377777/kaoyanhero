@@ -146,6 +146,19 @@ function cleanReviewDecision(payload) {
   return { status, comment };
 }
 
+function cleanRewardReviewDecision(payload) {
+  const status = String(payload?.status || "").trim();
+  const note = String(payload?.note || "").trim();
+  if (!["fulfilled", "rejected"].includes(status)) {
+    throw Object.assign(new Error("兑换审核结果必须是通过或拒绝"), { status: 400 });
+  }
+  if (status === "rejected" && !note) {
+    throw Object.assign(new Error("拒绝兑换时请填写原因"), { status: 400 });
+  }
+  if (note.length > 500) throw Object.assign(new Error("审核说明不能超过 500 字"), { status: 400 });
+  return { status, note };
+}
+
 async function signUp(req, res, payload) {
   const email = cleanEmail(payload?.email);
   const password = cleanPassword(payload?.password);
@@ -833,8 +846,10 @@ async function adminListRewards() {
     targetUserIds: Array.isArray(reward.target_user_ids) ? reward.target_user_ids : [],
     groupId: reward.group_id,
     groupName: groupById.get(reward.group_id) || "",
+    requiresReview: Boolean(reward.requires_review),
     active: Boolean(reward.active),
-    redeemedTotal: (redemptions || []).filter((item) => item.reward_id === reward.id && item.status !== "cancelled").length,
+    redeemedTotal: (redemptions || []).filter((item) => item.reward_id === reward.id && !["cancelled", "rejected"].includes(item.status)).length,
+    pendingTotal: (redemptions || []).filter((item) => item.reward_id === reward.id && item.status === "pending").length,
     redemptions: (redemptions || []).filter((item) => item.reward_id === reward.id && item.status !== "cancelled").slice(0, 20).map((item) => ({
       userId: item.user_id,
       email: emailById.get(item.user_id) || "(未知邮箱)",
@@ -861,6 +876,7 @@ async function adminCreateReward(payload) {
     audience_mode: audienceMode,
     target_user_ids: targetUserIds,
     group_id: groupId,
+    requires_review: payload?.requiresReview === true || payload?.requiresReview === "on" || payload?.requiresReview === "true",
     active: payload?.active !== false,
   };
   const { data } = await supabaseRequest(restPath("reward_catalog"), {
@@ -870,6 +886,44 @@ async function adminCreateReward(payload) {
     body: row,
   });
   return data?.[0] || row;
+}
+
+async function adminListRewardRedemptions() {
+  const [{ data: redemptions }, { data: rewards }, authUsers] = await Promise.all([
+    supabaseRequest(restPath("reward_redemptions", "select=id,reward_id,user_id,coin_cost,status,review_note,reviewed_at,created_at&order=created_at.desc&limit=2000"), { useServiceRole: true }),
+    supabaseRequest(restPath("reward_catalog", "select=id,title,description,requires_review"), { useServiceRole: true }),
+    adminListAuthUsers(),
+  ]);
+  const rewardById = new Map((rewards || []).map((reward) => [reward.id, reward]));
+  const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  return (redemptions || []).map((item) => {
+    const reward = rewardById.get(item.reward_id) || {};
+    return {
+      id: item.id,
+      rewardId: item.reward_id,
+      rewardTitle: reward.title || "已删除奖励",
+      rewardDescription: reward.description || "",
+      requiresReview: Boolean(reward.requires_review),
+      userId: item.user_id,
+      email: emailById.get(item.user_id) || "(未知邮箱)",
+      coinCost: Number(item.coin_cost || 0),
+      status: item.status,
+      reviewNote: item.review_note || "",
+      reviewedAt: item.reviewed_at || null,
+      createdAt: item.created_at,
+    };
+  });
+}
+
+async function adminReviewRewardRedemption(redemptionId, payload) {
+  const id = cleanUserId(redemptionId);
+  const decision = cleanRewardReviewDecision(payload);
+  const { data } = await supabaseRequest("/rest/v1/rpc/review_reward_redemption", {
+    method: "POST",
+    useServiceRole: true,
+    body: { p_redemption_id: id, p_status: decision.status, p_note: decision.note },
+  });
+  return data;
 }
 
 module.exports = {
@@ -908,7 +962,9 @@ module.exports = {
   adminListUserCheckins,
   adminListRewards,
   adminCreateReward,
+  adminListRewardRedemptions,
+  adminReviewRewardRedemption,
   adminListRewardGroups,
   adminCreateRewardGroup,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, translateRewardError, parseRecipientIds },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, cleanRewardReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, translateRewardError, parseRecipientIds },
 };

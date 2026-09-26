@@ -685,6 +685,35 @@
     .admin-reward-row, .admin-group-row { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: white; }
     .admin-reward-row strong, .admin-group-row strong { display: block; font-size: 12px; }
     .admin-reward-row span, .admin-group-row span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .admin-switch { grid-column: 1 / -1; display: flex; align-items: center; gap: 11px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+    .admin-switch input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
+    .admin-switch-copy { display: grid; gap: 3px; }
+    .admin-switch-copy strong { font-size: 11px; }
+    .admin-switch-copy small { color: var(--muted); font-size: 9px; font-weight: 500; line-height: 1.5; }
+    .admin-redemption-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .admin-redemption-toolbar strong { font-size: 13px; }
+    .admin-redemption-filter { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--ink); font-size: 10px; font-weight: 800; }
+    .admin-redemptions { display: grid; gap: 9px; }
+    .admin-redemption-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .admin-redemption-main { min-width: 0; }
+    .admin-redemption-main strong { display: block; margin-bottom: 4px; font-size: 12px; overflow-wrap: anywhere; }
+    .admin-redemption-main span { color: var(--muted); font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+    .redemption-status { padding: 5px 9px; border-radius: 999px; font-size: 9px; font-weight: 900; white-space: nowrap; }
+    .redemption-status.pending { background: rgba(255,200,87,.28); color: #87540a; }
+    .redemption-status.fulfilled { background: rgba(47,155,123,.14); color: #24775f; }
+    .redemption-status.rejected { background: rgba(184,58,48,.12); color: #a6322a; }
+    .redemption-status.cancelled { background: var(--paper-deep); color: var(--muted); }
+    .admin-redemption-view { padding: 7px 11px; border: 1.5px solid var(--ink); border-radius: 999px; background: white; color: var(--ink); cursor: pointer; font-size: 9px; font-weight: 900; }
+    .redemption-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 14px 0; }
+    .redemption-detail-cell { padding: 10px 11px; border-radius: 10px; background: var(--paper-deep); }
+    .redemption-detail-cell span { display: block; margin-bottom: 3px; color: var(--muted); font-size: 8px; font-weight: 800; }
+    .redemption-detail-cell strong { display: block; font-size: 11px; overflow-wrap: anywhere; }
+    .redemption-description { margin: 0 0 13px; padding: 11px; border-left: 3px solid var(--yellow); background: #fff9e9; color: #4b5265; font-size: 10px; line-height: 1.65; }
+    .redemption-review-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+    .redemption-review-actions button { padding: 10px 14px; border: 0; border-radius: 999px; cursor: pointer; font-size: 10px; font-weight: 900; }
+    .redemption-approve { background: var(--mint); color: white; }
+    .redemption-reject { background: #b83a30; color: white; }
+    .redemption-review-actions button:disabled { opacity: .55; cursor: wait; }
 
     .toast {
       position: fixed;
@@ -737,6 +766,9 @@
       .team-dialog { padding: 22px 17px; box-shadow: 5px 5px 0 var(--yellow); }
       .team-setup-grid { grid-template-columns: 1fr; }
       .reward-grid, .admin-form-grid { grid-template-columns: 1fr; }
+      .admin-redemption-row { grid-template-columns: 1fr auto; }
+      .admin-redemption-view { grid-column: 1 / -1; justify-self: stretch; }
+      .redemption-detail-grid { grid-template-columns: 1fr; }
       .admin-field.full, .admin-form-grid h3, .admin-submit, .admin-member-picker { grid-column: 1; }
       .admin-member-picker { grid-template-columns: 1fr; }
       .team-head-card { flex-direction: column; }
@@ -1037,6 +1069,7 @@
         <div class="admin-tabs" role="tablist" aria-label="后台功能">
           <button class="admin-tab active" type="button" data-admin-tab="users">用户审核</button>
           <button class="admin-tab" type="button" data-admin-tab="rewards">奖励发布</button>
+          <button class="admin-tab" type="button" data-admin-tab="redemptions">兑换记录</button>
           <button class="admin-tab" type="button" data-admin-tab="groups">成员分组</button>
         </div>
         <section class="admin-pane" data-admin-pane="users">
@@ -1057,9 +1090,25 @@
             <label class="admin-field">发布范围<select name="audienceMode" id="adminRewardAudience"><option value="all">所有成员</option><option value="users">指定成员</option><option value="group">指定分组</option></select></label>
             <label class="admin-field" id="adminRewardGroupField" hidden>指定分组<select name="groupId" id="adminRewardGroupSelect"></select></label>
             <label class="admin-field full" id="adminRewardUsersField" hidden>指定用户 ID<textarea name="targetUserIds" placeholder="多个 UUID 可用逗号、空格、分号或换行分隔"></textarea><small>也可以先在“成员分组”里建立常用分组，再按分组发布。</small></label>
+            <label class="admin-switch" for="adminRewardRequiresReview">
+              <input id="adminRewardRequiresReview" name="requiresReview" type="checkbox">
+              <span class="admin-switch-copy"><strong>兑换后需要管理员审核</strong><small>现金、实物或需要核对领取信息的奖励建议开启；虚拟物品关闭后会自动发放。</small></span>
+            </label>
             <button class="admin-submit" type="submit">发布奖励</button>
           </form>
           <div class="admin-reward-list" id="adminRewards"><div class="admin-empty">正在加载奖励…</div></div>
+        </section>
+        <section class="admin-pane" data-admin-pane="redemptions" hidden>
+          <div class="admin-redemption-toolbar">
+            <strong id="adminRedemptionSummary">正在读取兑换记录…</strong>
+            <select class="admin-redemption-filter" id="adminRedemptionFilter" aria-label="筛选兑换状态">
+              <option value="all">全部状态</option>
+              <option value="pending">只看待审核</option>
+              <option value="fulfilled">只看已发放</option>
+              <option value="rejected">只看已拒绝</option>
+            </select>
+          </div>
+          <div class="admin-redemptions" id="adminRedemptions"><div class="admin-empty">正在加载兑换记录…</div></div>
         </section>
         <section class="admin-pane" data-admin-pane="groups" hidden>
           <form class="admin-form-grid" id="adminGroupForm">
@@ -1094,6 +1143,25 @@
     </form>
   </div>
 
+  <div class="admin-review-modal" id="adminRedemptionModal" role="dialog" aria-modal="true" aria-labelledby="adminRedemptionTitle">
+    <div class="admin-review-dialog">
+      <h3 id="adminRedemptionTitle">兑换记录详情</h3>
+      <p id="adminRedemptionSubtitle">核对奖励与兑换成员后再处理。</p>
+      <div class="redemption-detail-grid" id="adminRedemptionDetails"></div>
+      <p class="redemption-description" id="adminRedemptionDescription"></p>
+      <label class="admin-review-field" for="adminRedemptionNote">
+        审核说明
+        <textarea id="adminRedemptionNote" maxlength="500" placeholder="通过时可填写发放说明；拒绝时必须填写原因。"></textarea>
+        <span class="admin-review-count" id="adminRedemptionNoteCount">0 / 500</span>
+      </label>
+      <div class="redemption-review-actions" id="adminRedemptionReviewActions">
+        <button class="admin-review-cancel" id="adminRedemptionCancel" type="button">关闭</button>
+        <button class="redemption-reject" id="adminRedemptionReject" type="button">拒绝并退还金币</button>
+        <button class="redemption-approve" id="adminRedemptionApprove" type="button">通过并标记发放</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = "kaoyanHeroV30";
     const LEGACY_STORAGE_KEY = "kaoyanHeroV21";
@@ -1114,6 +1182,8 @@
     let adminUsersById = new Map();
     let adminRewardGroups = [];
     let adminReviewTargetId = "";
+    let adminRedemptions = [];
+    let adminRedemptionTargetId = "";
     let studyTeam = null;
 
     const $ = (selector) => document.querySelector(selector);
@@ -2096,13 +2166,14 @@
         const limitReached = Number(reward.remainingForMe) <= 0;
         const insufficient = state.coin < Number(reward.coinCost || 0);
         const disabled = !reward.canRedeem;
-        const buttonText = soldOut ? "已兑完" : limitReached ? "已达上限" : insufficient ? "金币不足" : "立即兑换";
+        const awaitingReview = reward.latestStatus === "pending";
+        const buttonText = soldOut ? "已兑完" : awaitingReview && limitReached ? "等待审核" : limitReached ? "已达上限" : insufficient ? "金币不足" : (reward.requiresReview ? "申请兑换" : "立即兑换");
         const stockLabel = reward.stock === null ? "库存不限" : `剩余 ${Number(reward.remainingStock) || 0} 份`;
         return `<article class="reward-card">
-          <div class="reward-tags"><span class="reward-tag targeted">${escapeHtml(rewardAudienceLabel(reward))}</span><span class="reward-tag">${escapeHtml(stockLabel)}</span><span class="reward-tag">每人 ${Number(reward.perUserLimit) || 1} 次</span></div>
+          <div class="reward-tags"><span class="reward-tag targeted">${escapeHtml(rewardAudienceLabel(reward))}</span><span class="reward-tag">${escapeHtml(stockLabel)}</span><span class="reward-tag">每人 ${Number(reward.perUserLimit) || 1} 次</span><span class="reward-tag">${reward.requiresReview ? "需管理员审核" : "自动发放"}</span></div>
           <h3>${escapeHtml(reward.title || "勇者奖励")}</h3>
           <p>${escapeHtml(reward.description || "兑换后请联系管理员领取。")}</p>
-          <div class="reward-card-foot"><span class="reward-cost">🪙 ${Number(reward.coinCost) || 0}</span><button class="reward-redeem" type="button" data-reward-id="${escapeHtml(reward.id)}" ${disabled ? "disabled" : ""}>${buttonText}</button></div>
+          <div class="reward-card-foot"><span class="reward-cost">🪙 ${Number(reward.coinCost) || 0}</span><button class="reward-redeem" type="button" data-reward-id="${escapeHtml(reward.id)}" data-requires-review="${reward.requiresReview ? "true" : "false"}" ${disabled ? "disabled" : ""}>${buttonText}</button></div>
         </article>`;
       }).join("");
     }
@@ -2143,7 +2214,11 @@
     async function handleRewardAction(event) {
       const button = event.target.closest("[data-reward-id]");
       if (!button) return;
-      if (!window.confirm("确认使用金币兑换这个奖励吗？")) return;
+      const needsReview = button.dataset.requiresReview === "true";
+      const confirmation = needsReview
+        ? "确认提交兑换申请吗？金币会先扣除；若管理员拒绝，金币将自动退还。"
+        : "确认使用金币兑换这个奖励吗？该奖励会自动发放。";
+      if (!window.confirm(confirmation)) return;
       button.disabled = true;
       button.textContent = "兑换中…";
       try {
@@ -2152,7 +2227,7 @@
         if (!response.ok) throw new Error(data.error || "兑换失败");
         state.coin = Number(data.coin || 0);
         updateDashboard();
-        showToast("兑换成功，管理员可以在兑换记录中看到这次兑换");
+        showToast(data.status === "pending" ? "兑换申请已提交，等待管理员审核" : "兑换成功，奖励已自动发放");
         await loadRewards();
       } catch (error) {
         showToast(error.message || "兑换失败", "error");
@@ -2167,6 +2242,7 @@
 
     function closeAdminPanel() {
       closeAdminReview();
+      closeAdminRedemption();
       $("#adminModal").classList.remove("open");
     }
 
@@ -2180,7 +2256,7 @@
       }
       $("#adminLoginForm").hidden = adminAuthenticated;
       $("#adminPanel").hidden = !adminAuthenticated;
-      if (adminAuthenticated) await Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups()]);
+      if (adminAuthenticated) await Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups(), loadAdminRedemptions()]);
     }
 
     async function handleAdminLogin(event) {
@@ -2201,7 +2277,7 @@
         adminAuthenticated = true;
         $("#adminLoginForm").hidden = true;
         $("#adminPanel").hidden = false;
-        await loadAdminUsers();
+        await Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups(), loadAdminRedemptions()]);
         showToast("管理员登录成功");
       } catch (error) {
         showToast(error.message || "管理员登录失败", "error");
@@ -2317,11 +2393,106 @@
         list.innerHTML = rewards.length ? rewards.map((reward) => {
           const scope = reward.audienceMode === "all" ? "所有成员" : reward.audienceMode === "group" ? `分组：${reward.groupName || "未知"}` : `指定 ${reward.targetUserIds?.length || 0} 人`;
           const stock = reward.stock === null ? "库存不限" : `库存 ${reward.redeemedTotal}/${reward.stock}`;
-          const latest = (reward.redemptions || []).slice(0, 5).map((item) => `${item.email}（${formatCloudDateTime(item.createdAt)}）`).join("、");
-          return `<div class="admin-reward-row"><strong>${escapeHtml(reward.title)} · 🪙 ${Number(reward.coinCost) || 0}</strong><span>${escapeHtml(scope)} · ${escapeHtml(stock)} · 每人限兑 ${Number(reward.perUserLimit) || 1} 次 · 已兑换 ${Number(reward.redeemedTotal) || 0} 次</span>${latest ? `<span>最近兑换：${escapeHtml(latest)}</span>` : ""}</div>`;
+          const flow = reward.requiresReview ? `人工审核${Number(reward.pendingTotal) ? ` · 待处理 ${Number(reward.pendingTotal)}` : ""}` : "自动发放";
+          return `<div class="admin-reward-row"><strong>${escapeHtml(reward.title)} · 🪙 ${Number(reward.coinCost) || 0}</strong><span>${escapeHtml(scope)} · ${escapeHtml(stock)} · 每人限兑 ${Number(reward.perUserLimit) || 1} 次 · 已兑换 ${Number(reward.redeemedTotal) || 0} 次</span><span>发放方式：${escapeHtml(flow)}</span></div>`;
         }).join("") : '<div class="admin-empty">还没有发布奖励</div>';
       } catch (error) {
         list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "奖励加载失败")}</div>`;
+      }
+    }
+
+    function normalizedRedemptionStatus(status) {
+      return status === "redeemed" ? "fulfilled" : status;
+    }
+
+    function redemptionStatusLabel(status) {
+      return ({ pending: "待审核", fulfilled: "已发放", rejected: "已拒绝", cancelled: "已取消" })[normalizedRedemptionStatus(status)] || "未知状态";
+    }
+
+    function renderAdminRedemptions() {
+      const list = $("#adminRedemptions");
+      const filter = $("#adminRedemptionFilter").value;
+      const pendingCount = adminRedemptions.filter((item) => normalizedRedemptionStatus(item.status) === "pending").length;
+      $("#adminRedemptionSummary").textContent = `共 ${adminRedemptions.length} 条兑换 · 待审核 ${pendingCount}`;
+      const visible = filter === "all"
+        ? adminRedemptions
+        : adminRedemptions.filter((item) => normalizedRedemptionStatus(item.status) === filter);
+      list.innerHTML = visible.length ? visible.map((item) => {
+        const status = normalizedRedemptionStatus(item.status);
+        return `<article class="admin-redemption-row">
+          <div class="admin-redemption-main"><strong>${escapeHtml(item.rewardTitle)} · ${escapeHtml(item.email)}</strong><span>${escapeHtml(formatCloudDateTime(item.createdAt))} · 🪙 ${Number(item.coinCost) || 0} · ${item.requiresReview ? "人工审核" : "自动发放"}</span></div>
+          <span class="redemption-status ${escapeHtml(status)}">${escapeHtml(redemptionStatusLabel(status))}</span>
+          <button class="admin-redemption-view" type="button" data-redemption-id="${escapeHtml(item.id)}">查看详情${status === "pending" ? "并审核" : ""}</button>
+        </article>`;
+      }).join("") : '<div class="admin-empty">当前筛选条件下没有兑换记录</div>';
+    }
+
+    async function loadAdminRedemptions() {
+      const list = $("#adminRedemptions");
+      list.innerHTML = '<div class="admin-empty">正在加载兑换记录…</div>';
+      try {
+        const response = await fetch("/api/admin/reward-redemptions");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取兑换记录");
+        adminRedemptions = Array.isArray(data.redemptions) ? data.redemptions : [];
+        renderAdminRedemptions();
+      } catch (error) {
+        adminRedemptions = [];
+        $("#adminRedemptionSummary").textContent = "兑换记录加载失败";
+        list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "加载失败")}</div>`;
+      }
+    }
+
+    function openAdminRedemption(redemptionId) {
+      const item = adminRedemptions.find((entry) => entry.id === redemptionId);
+      if (!item) return;
+      adminRedemptionTargetId = redemptionId;
+      const status = normalizedRedemptionStatus(item.status);
+      $("#adminRedemptionTitle").textContent = status === "pending" ? "审核兑换申请" : "兑换记录详情";
+      $("#adminRedemptionSubtitle").textContent = `${item.rewardTitle} · ${redemptionStatusLabel(status)}`;
+      $("#adminRedemptionDetails").innerHTML = `
+        <div class="redemption-detail-cell"><span>兑换成员</span><strong>${escapeHtml(item.email)}</strong></div>
+        <div class="redemption-detail-cell"><span>用户 ID</span><strong>${escapeHtml(item.userId)}</strong></div>
+        <div class="redemption-detail-cell"><span>兑换时间</span><strong>${escapeHtml(formatCloudDateTime(item.createdAt))}</strong></div>
+        <div class="redemption-detail-cell"><span>金币 / 发放方式</span><strong>🪙 ${Number(item.coinCost) || 0} · ${item.requiresReview ? "人工审核" : "自动发放"}</strong></div>`;
+      $("#adminRedemptionDescription").textContent = item.rewardDescription || "该奖励未填写领取说明。";
+      $("#adminRedemptionNote").value = item.reviewNote || "";
+      $("#adminRedemptionNote").disabled = status !== "pending";
+      $("#adminRedemptionNoteCount").textContent = `${String(item.reviewNote || "").length} / 500`;
+      $("#adminRedemptionApprove").hidden = status !== "pending";
+      $("#adminRedemptionReject").hidden = status !== "pending";
+      $("#adminRedemptionModal").classList.add("open");
+    }
+
+    function closeAdminRedemption() {
+      adminRedemptionTargetId = "";
+      $("#adminRedemptionModal").classList.remove("open");
+      $("#adminRedemptionNote").value = "";
+      $("#adminRedemptionNote").disabled = false;
+      $("#adminRedemptionNoteCount").textContent = "0 / 500";
+    }
+
+    async function reviewAdminRedemption(status) {
+      if (!adminRedemptionTargetId) return;
+      const note = $("#adminRedemptionNote").value.trim();
+      if (status === "rejected" && !note) return showToast("拒绝兑换时请填写原因", "error");
+      const buttons = [$("#adminRedemptionApprove"), $("#adminRedemptionReject")];
+      buttons.forEach((button) => { button.disabled = true; });
+      try {
+        const response = await fetch(`/api/admin/reward-redemptions/${encodeURIComponent(adminRedemptionTargetId)}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, note }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "兑换审核失败");
+        closeAdminRedemption();
+        showToast(status === "fulfilled" ? "已通过并标记为发放" : "已拒绝，兑换金币已自动退还");
+        await Promise.all([loadAdminRedemptions(), loadAdminRewards()]);
+      } catch (error) {
+        showToast(error.message || "兑换审核失败", "error");
+      } finally {
+        buttons.forEach((button) => { button.disabled = false; });
       }
     }
 
@@ -2343,6 +2514,7 @@
         form.reset();
         form.elements.coinCost.value = "30";
         form.elements.perUserLimit.value = "1";
+        form.elements.requiresReview.checked = false;
         updateRewardAudienceFields();
         showToast("奖励已发布");
         await loadAdminRewards();
@@ -2575,11 +2747,21 @@
     $("#adminModal").addEventListener("click", (event) => { if (event.target === $("#adminModal")) closeAdminPanel(); });
     $("#adminLoginForm").addEventListener("submit", handleAdminLogin);
     $("#adminLogout").addEventListener("click", handleAdminLogout);
-    $("#adminRefresh").addEventListener("click", () => Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups()]));
+    $("#adminRefresh").addEventListener("click", () => Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups(), loadAdminRedemptions()]));
     document.querySelectorAll("[data-admin-tab]").forEach((button) => button.addEventListener("click", () => setAdminTab(button.dataset.adminTab)));
     $("#adminRewardAudience").addEventListener("change", updateRewardAudienceFields);
     $("#adminRewardForm").addEventListener("submit", handleAdminRewardSubmit);
     $("#adminGroupForm").addEventListener("submit", handleAdminGroupSubmit);
+    $("#adminRedemptionFilter").addEventListener("change", renderAdminRedemptions);
+    $("#adminRedemptions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-redemption-id]");
+      if (button) openAdminRedemption(button.dataset.redemptionId);
+    });
+    $("#adminRedemptionCancel").addEventListener("click", closeAdminRedemption);
+    $("#adminRedemptionModal").addEventListener("click", (event) => { if (event.target === $("#adminRedemptionModal")) closeAdminRedemption(); });
+    $("#adminRedemptionApprove").addEventListener("click", () => reviewAdminRedemption("fulfilled"));
+    $("#adminRedemptionReject").addEventListener("click", () => reviewAdminRedemption("rejected"));
+    $("#adminRedemptionNote").addEventListener("input", (event) => { $("#adminRedemptionNoteCount").textContent = `${event.target.value.length} / 500`; });
     $("#adminUsers").addEventListener("click", handleAdminUserAction);
     $("#adminReviewCancel").addEventListener("click", closeAdminReview);
     $("#adminReviewModal").addEventListener("click", (event) => { if (event.target === $("#adminReviewModal")) closeAdminReview(); });

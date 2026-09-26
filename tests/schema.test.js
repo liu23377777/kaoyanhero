@@ -47,6 +47,16 @@ test("reward catalog supports audiences, groups, per-user limits, and atomic red
   assert.match(schema, /INSUFFICIENT_COINS/i);
 });
 
+test("reward redemptions support optional approval with atomic refund on rejection", () => {
+  assert.match(schema, /requires_review\s+boolean\s+not null\s+default\s+false/i);
+  assert.match(schema, /status[\s\S]*'pending'[\s\S]*'fulfilled'[\s\S]*'rejected'/i);
+  assert.match(schema, /review_note\s+text/i);
+  assert.match(schema, /create or replace function public\.review_reward_redemption/i);
+  assert.match(schema, /review_reward_redemption[\s\S]*for update/i);
+  assert.match(schema, /p_status\s*=\s*'rejected'[\s\S]*set coin = coin \+ v_redemption\.coin_cost/i);
+  assert.match(schema, /grant execute on function public\.review_reward_redemption[\s\S]*to service_role/i);
+});
+
 test("check-in rewards can only be written by the trusted service role and are capped", () => {
   assert.match(schema, /create or replace function public\.record_checkin_server/i);
   assert.match(schema, /auth\.role\(\)[\s\S]*service_role/i);

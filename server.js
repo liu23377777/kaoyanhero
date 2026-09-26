@@ -761,6 +761,17 @@ const server = http.createServer(async (req, res) => {
       cloud.requireAdmin(req);
       return json(res, 200, { reward: await cloud.adminCreateReward(await readJson(req)) });
     }
+    if (req.method === "GET" && url.pathname === "/api/admin/reward-redemptions") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { redemptions: await cloud.adminListRewardRedemptions() });
+    }
+    if (req.method === "POST" && url.pathname.startsWith("/api/admin/reward-redemptions/") && url.pathname.endsWith("/review")) {
+      cloud.requireAdmin(req);
+      const segments = url.pathname.split("/");
+      const redemptionId = segments[4];
+      const review = await cloud.adminReviewRewardRedemption(redemptionId, await readJson(req));
+      return json(res, 200, { ok: true, review });
+    }
     if (req.method === "GET" && url.pathname === "/api/admin/reward-groups") {
       cloud.requireAdmin(req);
       return json(res, 200, { groups: await cloud.adminListRewardGroups() });

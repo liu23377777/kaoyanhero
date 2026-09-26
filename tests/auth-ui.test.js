@@ -50,6 +50,11 @@ test("rewards have a member redemption view and admin publishing and grouping vi
   assert.match(html, /\/api\/rewards/);
   assert.match(html, /\/api\/admin\/rewards/);
   assert.match(html, /\/api\/admin\/reward-groups/);
+  assert.match(html, /id="adminRewardRequiresReview"/);
+  assert.match(html, /data-admin-tab="redemptions"/);
+  assert.match(html, /id="adminRedemptions"/);
+  assert.match(html, /id="adminRedemptionModal"/);
+  assert.match(html, /\/api\/admin\/reward-redemptions/);
 });
 
 test("history rows can reopen complete AI evaluations and show same-day times", () => {

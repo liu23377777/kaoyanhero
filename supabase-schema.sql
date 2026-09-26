@@ -124,6 +124,7 @@ create table if not exists public.reward_catalog (
   audience_mode text not null default 'all' check (audience_mode in ('all', 'users', 'group')),
   target_user_ids uuid[] not null default '{}'::uuid[],
   group_id uuid references public.reward_groups(id) on delete set null,
+  requires_review boolean not null default false,
   active boolean not null default true,
   starts_at timestamptz,
   ends_at timestamptz,
@@ -137,9 +138,21 @@ create table if not exists public.reward_redemptions (
   reward_id uuid not null references public.reward_catalog(id) on delete restrict,
   user_id uuid not null references auth.users(id) on delete cascade,
   coin_cost integer not null check (coin_cost >= 0),
-  status text not null default 'redeemed' check (status in ('redeemed', 'fulfilled', 'cancelled')),
+  status text not null default 'fulfilled' check (status in ('pending', 'fulfilled', 'rejected', 'cancelled')),
+  review_note text not null default '' check (char_length(review_note) <= 500),
+  reviewed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- 兼容已经上线的奖励表：老兑换视为已自动发放。
+alter table public.reward_catalog add column if not exists requires_review boolean not null default false;
+alter table public.reward_redemptions add column if not exists review_note text not null default '';
+alter table public.reward_redemptions add column if not exists reviewed_at timestamptz;
+update public.reward_redemptions set status = 'fulfilled' where status = 'redeemed';
+alter table public.reward_redemptions alter column status set default 'fulfilled';
+alter table public.reward_redemptions drop constraint if exists reward_redemptions_status_check;
+alter table public.reward_redemptions add constraint reward_redemptions_status_check
+  check (status in ('pending', 'fulfilled', 'rejected', 'cancelled'));
 
 create index if not exists reward_redemptions_reward_user_idx
   on public.reward_redemptions(reward_id, user_id, created_at desc);
@@ -621,6 +634,8 @@ begin
     'remainingForMe', greatest(0, visible.per_user_limit - visible.redeemed_by_me),
     'audienceMode', visible.audience_mode,
     'groupName', visible.group_name,
+    'requiresReview', visible.requires_review,
+    'latestStatus', visible.latest_status,
     'canRedeem', v_coin >= visible.coin_cost
       and visible.redeemed_by_me < visible.per_user_limit
       and (visible.stock is null or visible.redeemed_total < visible.stock),
@@ -630,8 +645,9 @@ begin
   from (
     select r.*,
       g.name as group_name,
-      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.status <> 'cancelled') as redeemed_total,
-      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.user_id = v_user and rr.status <> 'cancelled') as redeemed_by_me
+      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.status not in ('cancelled', 'rejected')) as redeemed_total,
+      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.user_id = v_user and rr.status not in ('cancelled', 'rejected')) as redeemed_by_me,
+      (select rr.status from public.reward_redemptions rr where rr.reward_id = r.id and rr.user_id = v_user order by rr.created_at desc limit 1) as latest_status
     from public.reward_catalog r
     left join public.reward_groups g on g.id = r.group_id
     where r.active is true
@@ -682,22 +698,68 @@ begin
   select * into v_profile from public.profiles where id = v_user for update;
   if v_profile.approval_status <> 'approved' then raise exception 'ACCOUNT_NOT_APPROVED'; end if;
   select count(*) into v_user_count from public.reward_redemptions
-    where reward_id = v_reward.id and user_id = v_user and status <> 'cancelled';
+    where reward_id = v_reward.id and user_id = v_user and status not in ('cancelled', 'rejected');
   if v_user_count >= v_reward.per_user_limit then raise exception 'REWARD_LIMIT_REACHED'; end if;
   select count(*) into v_total_count from public.reward_redemptions
-    where reward_id = v_reward.id and status <> 'cancelled';
+    where reward_id = v_reward.id and status not in ('cancelled', 'rejected');
   if v_reward.stock is not null and v_total_count >= v_reward.stock then raise exception 'REWARD_OUT_OF_STOCK'; end if;
   if v_profile.coin < v_reward.coin_cost then raise exception 'INSUFFICIENT_COINS'; end if;
 
   update public.profiles set coin = coin - v_reward.coin_cost, updated_at = now() where id = v_user
     returning * into v_profile;
-  insert into public.reward_redemptions(reward_id, user_id, coin_cost)
-    values (v_reward.id, v_user, v_reward.coin_cost) returning * into v_redemption;
+  insert into public.reward_redemptions(reward_id, user_id, coin_cost, status)
+    values (v_reward.id, v_user, v_reward.coin_cost, case when v_reward.requires_review then 'pending' else 'fulfilled' end)
+    returning * into v_redemption;
   return jsonb_build_object(
     'redemptionId', v_redemption.id,
     'coin', v_profile.coin,
+    'status', v_redemption.status,
+    'requiresReview', v_reward.requires_review,
     'redeemedByMe', v_user_count + 1,
     'redeemedTotal', v_total_count + 1
+  );
+end;
+$$;
+
+create or replace function public.review_reward_redemption(
+  p_redemption_id uuid,
+  p_status text,
+  p_note text default ''
+)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_redemption public.reward_redemptions%rowtype;
+begin
+  if auth.role() <> 'service_role' then raise exception 'ADMIN_REQUIRED'; end if;
+  if p_status not in ('fulfilled', 'rejected') then raise exception 'INVALID_REVIEW_STATUS'; end if;
+  if p_status = 'rejected' and char_length(trim(coalesce(p_note, ''))) = 0 then
+    raise exception 'REJECTION_NOTE_REQUIRED';
+  end if;
+  if char_length(trim(coalesce(p_note, ''))) > 500 then raise exception 'REVIEW_NOTE_TOO_LONG'; end if;
+
+  select * into v_redemption from public.reward_redemptions
+    where id = p_redemption_id for update;
+  if not found then raise exception 'REDEMPTION_NOT_FOUND'; end if;
+  if v_redemption.status <> 'pending' then raise exception 'REDEMPTION_ALREADY_REVIEWED'; end if;
+
+  update public.reward_redemptions
+    set status = p_status, review_note = trim(coalesce(p_note, '')), reviewed_at = now()
+    where id = v_redemption.id;
+
+  if p_status = 'rejected' then
+    update public.profiles
+      set coin = coin + v_redemption.coin_cost, updated_at = now()
+      where id = v_redemption.user_id;
+  end if;
+
+  return jsonb_build_object(
+    'id', v_redemption.id,
+    'status', p_status,
+    'refundedCoin', case when p_status = 'rejected' then v_redemption.coin_cost else 0 end,
+    'reviewedAt', now()
   );
 end;
 $$;
@@ -716,6 +778,7 @@ revoke all on function public.get_study_team_checkins(uuid, integer) from public
 revoke all on function public.leave_study_team() from public;
 revoke all on function public.get_available_rewards() from public;
 revoke all on function public.redeem_reward(uuid) from public;
+revoke all on function public.review_reward_redemption(uuid, text, text) from public;
 grant execute on function public.create_study_team(text, text) to authenticated;
 grant execute on function public.join_study_team(text, text) to authenticated;
 grant execute on function public.get_my_study_team() to authenticated;
@@ -723,8 +786,11 @@ grant execute on function public.get_study_team_checkins(uuid, integer) to authe
 grant execute on function public.leave_study_team() to authenticated;
 grant execute on function public.get_available_rewards() to authenticated;
 grant execute on function public.redeem_reward(uuid) to authenticated;
+grant execute on function public.review_reward_redemption(uuid, text, text) to service_role;
 
 grant usage on schema public to authenticated;
 grant select on public.profiles, public.checkins to authenticated;
 grant select, insert, update on public.ai_preferences, public.habitica_connections to authenticated;
 grant select on public.usage_counters to authenticated;
+
+notify pgrst, 'reload schema';
