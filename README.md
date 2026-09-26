@@ -34,24 +34,13 @@ DAILY_AI_REQUEST_LIMIT=10
 
 配置后重启服务。网页会自动切换到云端模式，邮箱账户、经验、金币、连胜、打卡历史和 AI 偏好将在不同设备间同步。
 
-## 邮箱验证码注册
+## 邮箱注册与密码重置
 
-云端注册采用“邮箱 + 密码 → 邮箱验证码 → 自动登录”的两步流程。网站兼容 Supabase 当前可配置的 6～8 位邮箱验证码。需要在 Supabase Dashboard 完成以下设置：
+注册页使用“邮箱 + 密码 + 确认密码”直接创建账号，不再要求网页内输入动态验证码。若希望注册后立即登录，请在 Supabase Authentication > Sign In / Providers > Email 中关闭 Confirm email；若保持开启，用户需点击 Supabase 发出的确认链接后再登录。
 
-1. Authentication > Sign In / Providers > Email 中保持 Confirm email 开启。
-2. Authentication > Email Templates > Confirm signup，把模板中的确认链接改为 `{{ .Token }}` 验证码。
-3. 建议模板主题填写 `{{ .Token }} 是你的考研勇者注册验证码`，正文可使用：
+“忘记密码”会通过 Supabase 向用户邮箱发送安全重置链接，链接返回网站后可直接设置新密码。部署时必须正确填写 `PUBLIC_APP_URL`，并把该地址加入 Supabase Authentication > URL Configuration 的 Redirect URLs。
 
-```html
-<h2>验证你的邮箱</h2>
-<p>请输入下面的验证码完成“考研勇者”注册：</p>
-<p style="font-size:28px;font-weight:700;letter-spacing:6px">{{ .Token }}</p>
-<p>如果不是你本人操作，请忽略这封邮件。</p>
-```
-
-Supabase 默认限制验证码的发送频率；网页也会显示 60 秒重新发送倒计时。验证码由 Supabase 校验，验证成功后会建立 HttpOnly 登录会话，随后账号仍需经过管理员审核才能提交打卡。
-
-Supabase 内置邮件服务仅适合测试，并且默认只能向项目组织成员邮箱发送。要让普通访客（包括 QQ 邮箱、Gmail 等）都能收到验证码，必须在 Authentication > Emails > SMTP Settings 配置自有 SMTP（例如 Resend、Amazon SES、Postmark、SendGrid 或 Brevo）。
+Supabase 内置邮件服务仅适合测试，并且默认只能向项目组织成员邮箱发送。要让普通访客（包括 QQ 邮箱、Gmail 等）收到确认邮件或密码重置邮件，仍需在 Authentication > Emails > SMTP Settings 配置自有 SMTP（例如 Resend、Amazon SES、Postmark、SendGrid 或 Brevo）。
 
 如需 Google 登录，在 Supabase Authentication > Providers 启用 Google，将线上域名加入 Redirect URLs，然后设置：
 

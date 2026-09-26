@@ -120,14 +120,6 @@ function cleanPassword(value) {
   return password;
 }
 
-function cleanEmailOtp(value) {
-  const token = String(value || "").replace(/\s+/g, "");
-  if (!/^\d{6,8}$/.test(token)) {
-    throw Object.assign(new Error("请输入邮件中的 6～8 位验证码"), { status: 400 });
-  }
-  return token;
-}
-
 const APPROVAL_STATUSES = new Set(["pending", "approved", "rejected"]);
 
 function approvalView(profile = {}) {
@@ -188,41 +180,31 @@ async function signIn(req, res, payload) {
   return { user: { id: data.user.id, email: data.user.email }, signedIn: true };
 }
 
-async function verifyEmailOtp(req, res, payload) {
+async function requestPasswordReset(payload) {
   const email = cleanEmail(payload?.email);
-  const token = cleanEmailOtp(payload?.token);
-  let data;
+  const publicUrl = String(process.env.PUBLIC_APP_URL || "").replace(/\/$/, "");
+  if (!publicUrl) throw Object.assign(new Error("密码重置功能尚未配置 PUBLIC_APP_URL"), { status: 503 });
   try {
-    ({ data } = await supabaseRequest("/auth/v1/verify", {
+    await supabaseRequest(`/auth/v1/recover?redirect_to=${encodeURIComponent(`${publicUrl}/`)}`, {
       method: "POST",
-      body: { type: "email", email, token },
-    }));
-  } catch (error) {
-    if ([400, 401, 403].includes(error.status)) {
-      throw Object.assign(new Error("验证码不正确或已过期，请重新获取"), { status: 400 });
-    }
-    throw error;
-  }
-  if (!data?.access_token || !data?.refresh_token || !data?.user) {
-    throw Object.assign(new Error("邮箱验证成功，但登录会话创建失败，请直接登录"), { status: 502 });
-  }
-  setSessionCookies(req, res, data);
-  return { user: { id: data.user.id, email: data.user.email }, signedIn: true };
-}
-
-async function resendSignupOtp(payload) {
-  const email = cleanEmail(payload?.email);
-  try {
-    await supabaseRequest("/auth/v1/resend", {
-      method: "POST",
-      body: { type: "signup", email },
+      body: { email },
     });
   } catch (error) {
     if (error.status === 429) {
-      throw Object.assign(new Error("验证码发送过于频繁，请一分钟后再试"), { status: 429 });
+      throw Object.assign(new Error("重置邮件发送过于频繁，请稍后再试"), { status: 429 });
     }
     throw error;
   }
+  return { ok: true };
+}
+
+async function updatePassword(session, payload) {
+  const password = cleanPassword(payload?.password);
+  await supabaseRequest("/auth/v1/user", {
+    method: "PUT",
+    accessToken: session.accessToken,
+    body: { password },
+  });
   return { ok: true };
 }
 
@@ -725,8 +707,8 @@ module.exports = {
   publicConfig,
   signUp,
   signIn,
-  verifyEmailOtp,
-  resendSignupOtp,
+  requestPasswordReset,
+  updatePassword,
   acceptOAuthSession,
   sessionFromRequest,
   requireSession,
@@ -752,5 +734,5 @@ module.exports = {
   adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, cleanEmailOtp },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError },
 };

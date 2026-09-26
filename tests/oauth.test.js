@@ -3,6 +3,35 @@ const assert = require("node:assert/strict");
 
 const cloud = require("../cloud");
 
+test("builds a Google OAuth URL only when the provider is enabled", (t) => {
+  const previous = {
+    url: process.env.SUPABASE_URL,
+    anon: process.env.SUPABASE_ANON_KEY,
+    enabled: process.env.ENABLE_GOOGLE_AUTH,
+    publicUrl: process.env.PUBLIC_APP_URL,
+  };
+  process.env.SUPABASE_URL = "https://project-ref.supabase.co";
+  process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.ENABLE_GOOGLE_AUTH = "true";
+  process.env.PUBLIC_APP_URL = "https://kaoyan-hero.onrender.com/";
+  t.after(() => {
+    for (const [key, value] of Object.entries({
+      SUPABASE_URL: previous.url,
+      SUPABASE_ANON_KEY: previous.anon,
+      ENABLE_GOOGLE_AUTH: previous.enabled,
+      PUBLIC_APP_URL: previous.publicUrl,
+    })) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  });
+
+  const url = new URL(cloud.googleOAuthUrl({ headers: {} }));
+  assert.equal(url.origin, "https://project-ref.supabase.co");
+  assert.equal(url.pathname, "/auth/v1/authorize");
+  assert.equal(url.searchParams.get("provider"), "google");
+  assert.equal(url.searchParams.get("redirect_to"), "https://kaoyan-hero.onrender.com/");
+});
+
 test("builds a GitHub OAuth URL only when the provider is enabled", (t) => {
   const previous = {
     url: process.env.SUPABASE_URL,

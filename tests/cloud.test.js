@@ -14,7 +14,9 @@ test("encrypts and decrypts user secrets", () => {
 
 test("rejects tampered encrypted secrets", () => {
   const encrypted = cloud._test.encryptSecret("habitica-token-value");
-  const tampered = `${encrypted.slice(0, -1)}${encrypted.endsWith("a") ? "b" : "a"}`;
+  const parts = encrypted.split(".");
+  parts[2] = `${parts[2][0] === "a" ? "b" : "a"}${parts[2].slice(1)}`;
+  const tampered = parts.join(".");
   assert.throws(() => cloud._test.decryptSecret(tampered));
 });
 

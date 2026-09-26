@@ -28,6 +28,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      overscroll-behavior-x: none;
       color: var(--ink);
       font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
       background:
@@ -454,60 +455,74 @@
     .habitica-connect:disabled { opacity: .6; cursor: wait; }
     .habitica-help { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.55; }
 
-    .auth-modal { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(12,17,30,.66); backdrop-filter: blur(9px); }
-    .auth-modal.open { display: flex; }
-    .auth-dialog { width: min(470px, 100%); max-height: calc(100vh - 36px); overflow-y: auto; padding: 31px 32px 27px; border: 1px solid rgba(24,34,59,.16); border-radius: 27px; background: #fffefa; box-shadow: 0 28px 80px rgba(6,13,31,.24), 7px 7px 0 var(--yellow); position: relative; scrollbar-width: thin; }
-    .auth-dialog.register-mode { width: min(500px, 100%); }
-    .auth-close { position: absolute; top: 15px; right: 15px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--paper-deep); color: var(--ink); cursor: pointer; font-size: 18px; transition: transform .18s, background .18s; }
-    .auth-close:hover { background: #ebe4d7; transform: rotate(5deg); }
-    .auth-brand { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 19px; color: var(--ink); font-size: 13px; font-weight: 900; letter-spacing: .08em; }
-    .auth-brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border: 1.5px solid var(--ink); border-radius: 12px; background: var(--yellow); box-shadow: 3px 3px 0 var(--ink); font-size: 18px; transform: rotate(-3deg); }
-    .auth-heading { margin-bottom: 23px; text-align: center; }
-    .auth-heading h2 { margin: 0 0 8px; font-size: 27px; letter-spacing: -.04em; }
-    .auth-heading p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
-    .auth-security { display: flex; gap: 11px; margin-bottom: 18px; padding: 13px 14px; border: 1px solid rgba(71,107,214,.22); border-radius: 13px; background: #eef5ff; color: #264b86; font-size: 11px; line-height: 1.55; }
+    body.auth-open { overflow: hidden; }
+    body.auth-open > .shell { display: none; }
+    .auth-page { display: none; min-height: 100dvh; padding: clamp(18px, 4vw, 52px); overflow-y: auto; background: radial-gradient(circle at 10% 15%, rgba(255,200,87,.24), transparent 28rem), radial-gradient(circle at 92% 86%, rgba(71,107,214,.2), transparent 31rem), #111a32; }
+    .auth-page.open { display: grid; place-items: center; }
+    .auth-dialog { width: min(1030px, 100%); min-height: min(700px, calc(100dvh - 64px)); display: grid; grid-template-columns: minmax(300px, .88fr) minmax(420px, 1.12fr); overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 30px; background: var(--paper); box-shadow: 0 36px 100px rgba(4,9,24,.34); }
+    .auth-story { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 44px; overflow: hidden; background: var(--ink); color: white; }
+    .auth-story::before { content: ""; position: absolute; width: 340px; height: 340px; right: -185px; top: -150px; border: 62px solid rgba(255,200,87,.13); border-radius: 50%; }
+    .auth-story::after { content: ""; position: absolute; inset: auto 34px 130px auto; width: 68px; height: 68px; border-radius: 20px; background: var(--yellow); transform: rotate(13deg); box-shadow: 10px 10px 0 rgba(0,0,0,.18); }
+    .auth-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 900; letter-spacing: .09em; }
+    .auth-brand-mark { width: 43px; height: 43px; display: grid; place-items: center; border: 1.5px solid white; border-radius: 14px; background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 white; font-size: 20px; transform: rotate(-3deg); }
+    .auth-story-copy { position: relative; z-index: 1; max-width: 330px; }
+    .auth-story-kicker { display: inline-flex; align-items: center; gap: 9px; color: var(--yellow); font-size: 11px; font-weight: 900; letter-spacing: .18em; }
+    .auth-story-kicker::before { content: ""; width: 24px; height: 2px; background: currentColor; }
+    .auth-story h2 { margin: 18px 0 14px; font-size: clamp(34px, 4vw, 50px); line-height: 1.12; letter-spacing: -.055em; }
+    .auth-story p { margin: 0; color: rgba(255,255,255,.66); font-size: 13px; line-height: 1.9; }
+    .auth-story-meta { position: relative; z-index: 1; display: flex; gap: 9px; flex-wrap: wrap; }
+    .auth-story-meta span { padding: 7px 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: rgba(255,255,255,.7); font-size: 10px; }
+    .auth-panel { position: relative; display: flex; flex-direction: column; justify-content: center; padding: 52px clamp(34px, 6vw, 76px); background: linear-gradient(145deg, #fffefa, #f8f3e9); }
+    .auth-home { position: absolute; top: 26px; right: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border: 0; border-radius: 999px; background: rgba(24,34,59,.06); color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .auth-home:hover { background: rgba(24,34,59,.1); color: var(--ink); }
+    .auth-heading { margin-bottom: 24px; }
+    .auth-heading h2 { margin: 0 0 9px; font-size: clamp(30px, 4vw, 40px); letter-spacing: -.05em; }
+    .auth-heading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .auth-security { display: flex; gap: 11px; margin-bottom: 18px; padding: 13px 14px; border: 1px solid rgba(71,107,214,.2); border-radius: 14px; background: #eef4ff; color: #264b86; font-size: 11px; line-height: 1.55; }
     .auth-security svg { flex: 0 0 auto; width: 17px; height: 17px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.8; }
     .auth-security strong { display: block; margin-bottom: 2px; color: #183c74; }
-    .auth-field { display: block; margin-top: 13px; color: #475168; font-size: 11px; font-weight: 750; }
-    .auth-input-shell { position: relative; margin-top: 6px; }
-    .auth-input-icon { position: absolute; left: 13px; top: 50%; width: 17px; height: 17px; transform: translateY(-50%); fill: none; stroke: #9aa4b6; stroke-width: 1.7; pointer-events: none; }
-    .auth-field input { width: 100%; min-height: 45px; padding: 10px 43px 10px 41px; border: 1px solid #d9dee8; border-radius: 12px; background: white; color: var(--ink); outline: 0; transition: border-color .18s, box-shadow .18s, background .18s; }
-    .auth-field input::placeholder { color: #8b96aa; }
-    .auth-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(71,107,214,.10); }
-    .auth-field input:disabled { background: #f4f6f9; color: #727c90; }
-    .auth-password-toggle { position: absolute; top: 50%; right: 8px; width: 34px; height: 34px; display: grid; place-items: center; transform: translateY(-50%); border: 0; border-radius: 9px; background: transparent; color: #8d98ab; cursor: pointer; }
-    .auth-password-toggle:hover { background: #f1f3f7; color: var(--ink); }
+    .auth-field { display: block; margin-top: 14px; color: #475168; font-size: 11px; font-weight: 800; }
+    .auth-input-shell { position: relative; display: block; margin-top: 7px; }
+    .auth-input-icon { position: absolute; z-index: 1; left: 15px; top: 50%; width: 17px; height: 17px; transform: translateY(-50%); fill: none; stroke: #8794aa; stroke-width: 1.7; pointer-events: none; }
+    .auth-field input { display: block; width: 100%; min-height: 50px; padding: 12px 46px 12px 45px; border: 1px solid #d5dce8; border-radius: 14px; background: rgba(255,255,255,.88); color: var(--ink); outline: 0; font-size: 13px; transition: border-color .18s, box-shadow .18s, background .18s; }
+    .auth-field input::placeholder { color: #929caf; }
+    .auth-field input:focus { border-color: var(--blue); background: white; box-shadow: 0 0 0 4px rgba(71,107,214,.1); }
+    .auth-password-toggle { position: absolute; z-index: 2; top: 50%; right: 8px; width: 35px; height: 35px; display: grid; place-items: center; transform: translateY(-50%); border: 0; border-radius: 9px; background: transparent; color: #8794aa; cursor: pointer; }
+    .auth-password-toggle:hover { background: #eef1f6; color: var(--ink); }
     .auth-password-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; }
-    .auth-field-help { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 500; }
-    .auth-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-    .auth-code-row .auth-input-shell { min-width: 0; }
-    .send-code { align-self: end; min-height: 45px; padding: 0 14px; border: 1px solid rgba(71,107,214,.25); border-radius: 12px; background: #eef3ff; color: #3154b0; cursor: pointer; font-size: 11px; font-weight: 900; white-space: nowrap; }
-    .send-code:hover { border-color: var(--blue); background: #e3ebff; }
-    .send-code:disabled { border-color: var(--line); background: #f2f3f6; color: #9aa1ae; cursor: wait; }
-    .auth-forgot-row { display: flex; justify-content: flex-end; margin-top: 9px; }
-    .auth-forgot { padding: 0; border: 0; background: transparent; color: #526078; cursor: pointer; font-size: 10px; }
+    .auth-field-help { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    .auth-forgot-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .auth-forgot { padding: 0; border: 0; background: transparent; color: #526078; cursor: pointer; font-size: 11px; font-weight: 700; }
     .auth-forgot:hover { color: var(--blue); }
-    .auth-submit { width: 100%; margin-top: 19px; padding: 13px; border: 0; border-radius: 12px; background: var(--ink); color: white; cursor: pointer; font-weight: 900; box-shadow: 0 8px 18px rgba(24,34,59,.16); transition: transform .18s, box-shadow .18s, opacity .18s; }
-    .register-mode .auth-submit { background: var(--blue); }
-    .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 11px 24px rgba(24,34,59,.2); }
+    .auth-submit { width: 100%; margin-top: 21px; padding: 14px; border: 0; border-radius: 14px; background: var(--ink); color: white; cursor: pointer; font-weight: 900; box-shadow: 0 10px 24px rgba(24,34,59,.17); transition: transform .18s, box-shadow .18s, opacity .18s; }
+    .register-mode .auth-submit, .forgot-mode .auth-submit, .reset-mode .auth-submit { background: var(--blue); }
+    .auth-submit:hover { transform: translateY(-1px); box-shadow: 0 13px 29px rgba(24,34,59,.22); }
     .auth-submit:disabled { opacity: .58; cursor: wait; transform: none; }
-    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 19px 0 14px; color: var(--muted); font-size: 10px; }
+    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 21px 0 14px; color: var(--muted); font-size: 10px; }
     .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-    .social-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-    .social-button { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .social-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .social-buttons.one-provider { grid-template-columns: 1fr; }
+    .social-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: white; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 850; }
     .social-button:hover { border-color: var(--ink); background: var(--paper-deep); }
     .social-icon { width: 14px; height: 14px; fill: currentColor; }
-    .auth-mode-prompt { margin: 17px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
+    .auth-mode-prompt { margin: 18px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
     .auth-mode-switch { padding: 2px 4px; border: 0; background: transparent; color: var(--ink); cursor: pointer; font-weight: 900; }
     .auth-mode-switch:hover { color: var(--blue); }
-    .auth-note { margin-top: 11px; color: var(--muted); font-size: 9px; line-height: 1.5; text-align: center; }
+    .auth-note { margin-top: 12px; color: var(--muted); font-size: 9px; line-height: 1.55; text-align: center; }
     [hidden] { display: none !important; }
-    @media (max-width: 540px) {
-      .auth-modal { align-items: flex-end; padding: 0; }
-      .auth-dialog, .auth-dialog.register-mode { width: 100%; max-height: 94vh; padding: 28px 22px 24px; border-radius: 25px 25px 0 0; box-shadow: 0 -16px 50px rgba(6,13,31,.2); }
-      .auth-brand { justify-content: flex-start; padding-right: 42px; }
-      .auth-code-row { grid-template-columns: minmax(0, 1fr) 94px; }
-      .send-code { padding: 0 10px; }
+    @media (max-width: 760px) {
+      .auth-page { padding: 0; background: var(--paper); }
+      .auth-dialog { width: 100%; min-height: 100dvh; display: block; border: 0; border-radius: 0; box-shadow: none; }
+      .auth-story { min-height: 165px; padding: 24px; }
+      .auth-story-copy { margin-top: 34px; }
+      .auth-story h2 { margin: 10px 0 0; font-size: 28px; }
+      .auth-story p, .auth-story-meta { display: none; }
+      .auth-story::after { right: 36px; bottom: 26px; width: 46px; height: 46px; border-radius: 14px; }
+      .auth-panel { min-height: calc(100dvh - 165px); padding: 48px 24px 34px; justify-content: flex-start; }
+      .auth-home { top: 14px; right: 18px; }
+      .auth-heading { margin-bottom: 18px; }
+      .auth-heading h2 { font-size: 31px; }
+      .auth-field input { min-height: 49px; }
     }
     .admin-modal { position: fixed; inset: 0; z-index: 35; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
     .admin-modal.open { display: flex; }
@@ -872,64 +887,67 @@
 
   <div class="toast" id="toast" role="status"></div>
 
-  <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <main class="auth-page" id="authModal" aria-labelledby="authTitle">
     <div class="auth-dialog">
-      <button class="auth-close" id="authClose" type="button" aria-label="关闭">×</button>
-      <div class="auth-brand"><span class="auth-brand-mark" aria-hidden="true">⚔</span><span>考研勇者</span></div>
-      <header class="auth-heading">
-        <h2 id="authTitle"><span data-auth-copy="login">欢迎回来</span><span data-auth-copy="register" hidden>创建账户</span></h2>
-        <p id="authIntro"><span data-auth-copy="login">登录您的账户以继续</span><span data-auth-copy="register" hidden>注册并开启你的考研征程</span></p>
-      </header>
-      <div id="authPrimary">
-        <div class="auth-security" data-auth-only="register" hidden>
-          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 4.8 6v5.3c0 4.5 3 7.8 7.2 9.7 4.2-1.9 7.2-5.2 7.2-9.7V6L12 3Z"/><path d="m9.2 12 1.8 1.8 3.9-4"/></svg>
-          <div><strong>确认你正在创建“考研勇者”新账号</strong>验证码将发送到你的邮箱，请设置独立且安全的密码。</div>
+      <aside class="auth-story" aria-label="考研勇者介绍">
+        <div class="auth-brand"><span class="auth-brand-mark" aria-hidden="true">⚔</span><span>考研勇者</span></div>
+        <div class="auth-story-copy">
+          <span class="auth-story-kicker">STUDY QUEST</span>
+          <h2>把今天的坚持，变成明天的底气。</h2>
+          <p>登录后同步你的打卡、成长等级和学习小队，在每一个普通的日子里稳稳向前。</p>
         </div>
-        <form id="authForm">
-          <label class="auth-field">邮箱
-            <span class="auth-input-shell">
-              <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7 7.5 6 7.5-6"/></svg>
-              <input id="authEmail" type="email" autocomplete="email" required placeholder="请输入邮箱">
-            </span>
-          </label>
-          <label class="auth-field" data-auth-only="register" hidden>邮箱验证码
-            <span class="auth-code-row">
+        <div class="auth-story-meta"><span>每日打卡</span><span>AI 复盘</span><span>组队监督</span></div>
+      </aside>
+      <section class="auth-panel">
+        <button class="auth-home" id="authClose" type="button"><span aria-hidden="true">←</span> 返回首页</button>
+        <header class="auth-heading">
+          <h2 id="authTitle"><span data-auth-copy="login">欢迎回来</span><span data-auth-copy="register" hidden>创建账户</span><span data-auth-copy="forgot" hidden>找回密码</span><span data-auth-copy="reset" hidden>设置新密码</span></h2>
+          <p id="authIntro"><span data-auth-copy="login">继续今天的学习征程</span><span data-auth-copy="register" hidden>用邮箱和密码创建你的勇者档案</span><span data-auth-copy="forgot" hidden>我们会向你的邮箱发送安全重置链接</span><span data-auth-copy="reset" hidden>请设置一组新的登录密码</span></p>
+        </header>
+        <div id="authPrimary">
+          <div class="auth-security" data-auth-only="register" hidden>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 4.8 6v5.3c0 4.5 3 7.8 7.2 9.7 4.2-1.9 7.2-5.2 7.2-9.7V6L12 3Z"/><path d="m9.2 12 1.8 1.8 3.9-4"/></svg>
+            <div><strong>创建“考研勇者”新账号</strong>不再使用动态验证码；请设置独立且安全的密码。</div>
+          </div>
+          <form id="authForm">
+            <label class="auth-field" data-auth-modes="login register forgot">邮箱
               <span class="auth-input-shell">
-                <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2"/><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M12 14v3"/></svg>
-                <input id="authEmailCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" placeholder="请输入邮箱验证码">
+                <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4.5 7 7.5 6 7.5-6"/></svg>
+                <input id="authEmail" type="email" autocomplete="email" required placeholder="请输入邮箱">
               </span>
-              <button class="send-code" id="sendEmailCode" type="button">获取验证码</button>
-            </span>
-            <span class="auth-field-help">验证码为邮件中的 6～8 位数字</span>
-          </label>
-          <label class="auth-field">密码
-            <span class="auth-input-shell">
-              <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="请输入密码">
-              <button class="auth-password-toggle" type="button" data-toggle-password="authPassword" aria-label="显示密码"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></button>
-            </span>
-            <span class="auth-field-help" data-auth-only="register" hidden>至少 6 个字符</span>
-          </label>
-          <label class="auth-field" data-auth-only="register" hidden>确认密码
-            <span class="auth-input-shell">
-              <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-              <input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="请再次输入密码">
-              <button class="auth-password-toggle" type="button" data-toggle-password="authConfirmPassword" aria-label="显示确认密码"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></button>
-            </span>
-          </label>
-          <div class="auth-forgot-row" data-auth-only="login"><button class="auth-forgot" id="forgotPassword" type="button">忘记密码？</button></div>
-          <button class="auth-submit" id="authSubmit" type="submit">登录</button>
-        </form>
-        <div class="auth-divider">或使用第三方账户</div>
-        <div class="social-buttons">
-          <button class="social-button" type="button" data-social="Google"><span aria-hidden="true">G</span><span>Google</span></button>
-          <button class="social-button" type="button" data-social="GitHub"><svg class="social-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.29-5.27-5.68 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.16 1.18A11 11 0 0 1 12 6.14c.98 0 1.94.13 2.85.39 2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.82 1.19 3.08 0 4.4-2.71 5.38-5.29 5.67.42.36.79 1.06.79 2.14v3.27c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>GitHub</span></button>
+            </label>
+            <label class="auth-field" data-auth-modes="login register reset"><span data-field-copy="password">密码</span>
+              <span class="auth-input-shell">
+                <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="请输入密码">
+                <button class="auth-password-toggle" type="button" data-toggle-password="authPassword" aria-label="显示密码"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></button>
+              </span>
+              <span class="auth-field-help" data-auth-modes="register reset" hidden>至少 6 个字符</span>
+            </label>
+            <label class="auth-field" data-auth-modes="register reset" hidden>确认密码
+              <span class="auth-input-shell">
+                <svg class="auth-input-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <input id="authConfirmPassword" type="password" autocomplete="off" data-manual-confirm minlength="6" placeholder="请再次输入密码">
+                <button class="auth-password-toggle" type="button" data-toggle-password="authConfirmPassword" aria-label="显示确认密码"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg></button>
+              </span>
+              <span class="auth-field-help">请手动再次输入，不支持粘贴密码</span>
+            </label>
+            <div class="auth-forgot-row" data-auth-only="login"><button class="auth-forgot" id="forgotPassword" type="button">忘记密码？</button></div>
+            <button class="auth-submit" id="authSubmit" type="submit">登录</button>
+          </form>
+          <div id="authSocial" data-auth-only="login">
+            <div class="auth-divider">或使用第三方账户登录</div>
+            <div class="social-buttons" id="socialButtons">
+              <button class="social-button" type="button" data-social="Google" hidden><span aria-hidden="true">G</span><span>Google</span></button>
+              <button class="social-button" type="button" data-social="GitHub" hidden><svg class="social-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.29-5.27-5.68 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.16 1.18A11 11 0 0 1 12 6.14c.98 0 1.94.13 2.85.39 2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.82 1.19 3.08 0 4.4-2.71 5.38-5.29 5.67.42.36.79 1.06.79 2.14v3.27c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>GitHub</span></button>
+            </div>
+          </div>
+          <p class="auth-mode-prompt" data-auth-modes="login register forgot"><span id="authModePrompt">还没有账户？</span><button class="auth-mode-switch" id="authModeSwitch" type="button">注册</button></p>
+          <div class="auth-note" id="authNote">正在检查账户服务…</div>
         </div>
-        <p class="auth-mode-prompt"><span data-auth-copy="login">还没有账户？</span><span data-auth-copy="register" hidden>已有账户？</span><button class="auth-mode-switch" id="authModeSwitch" type="button">注册</button></p>
-        <div class="auth-note" id="authNote">正在检查云端账户服务…</div>
-      </div>
+      </section>
     </div>
-  </div>
+  </main>
 
   <div class="team-modal" id="teamModal" role="dialog" aria-modal="true" aria-labelledby="teamTitle">
     <div class="team-dialog">
@@ -1000,8 +1018,6 @@
     let providers = [];
     let toastTimer;
     let authMode = "login";
-    let pendingVerificationEmail = "";
-    let resendCountdownTimer = null;
     let appConfig = { cloudMode: false, googleAuth: false, githubAuth: false, dailyAiRequestLimit: 10 };
     let currentUser = null;
     let accountApproval = { status: "approved", comment: "", reviewedAt: null };
@@ -1484,39 +1500,10 @@
       elements.accountButton.title = session?.email ? `已登录：${session.email}；点击可退出` : appConfig.cloudMode ? "登录云端账户" : "登录本机账户";
     }
 
-    function stopResendCountdown() {
-      if (resendCountdownTimer) clearInterval(resendCountdownTimer);
-      resendCountdownTimer = null;
-    }
-
-    function startResendCountdown(seconds = 60) {
-      stopResendCountdown();
-      let remaining = seconds;
-      const button = $("#sendEmailCode");
-      const render = () => {
-        button.disabled = remaining > 0;
-        button.textContent = remaining > 0 ? `重新获取（${remaining}秒）` : "重新获取";
-      };
-      render();
-      resendCountdownTimer = setInterval(() => {
-        remaining -= 1;
-        render();
-        if (remaining <= 0) stopResendCountdown();
-      }, 1000);
-    }
-
-    function resetEmailVerification() {
-      stopResendCountdown();
-      pendingVerificationEmail = "";
-      $("#authEmailCode").value = "";
-      $("#sendEmailCode").disabled = false;
-      $("#sendEmailCode").textContent = "获取验证码";
-      ["#authEmail", "#authPassword", "#authConfirmPassword"].forEach((selector) => { $(selector).disabled = false; });
-    }
-
     function closeAuth() {
       elements.authModal.classList.remove("open");
-      resetEmailVerification();
+      document.body.classList.remove("auth-open");
+      elements.authForm.reset();
     }
 
     async function finishCloudAuthentication(user, message) {
@@ -1529,8 +1516,8 @@
       showToast(message);
     }
 
-    async function openAuth() {
-      if (getSession()?.email) {
+    async function openAuth(mode = "login", { force = false } = {}) {
+      if (!force && getSession()?.email) {
         if (window.confirm(appConfig.cloudMode ? "要退出当前云端账户吗？" : "要退出当前本机账户吗？")) {
           if (appConfig.cloudMode) {
             await fetch("/api/auth/logout", { method: "POST" });
@@ -1550,99 +1537,124 @@
         }
         return;
       }
-      resetEmailVerification();
       elements.authModal.classList.add("open");
-      setAuthMode("login");
-      $("#authEmail").focus();
+      document.body.classList.add("auth-open");
+      setAuthMode(mode);
+      requestAnimationFrame(() => $(mode === "reset" ? "#authPassword" : "#authEmail").focus());
     }
 
-    function setAuthMode(mode, { resetVerification = true } = {}) {
-      if (resetVerification) resetEmailVerification();
+    function updateSocialProviderVisibility() {
+      const google = document.querySelector('[data-social="Google"]');
+      const github = document.querySelector('[data-social="GitHub"]');
+      google.hidden = !appConfig.googleAuth;
+      github.hidden = !appConfig.githubAuth;
+      const enabledCount = Number(appConfig.googleAuth) + Number(appConfig.githubAuth);
+      $("#socialButtons").classList.toggle("one-provider", enabledCount === 1);
+      $("#authSocial").hidden = authMode !== "login" || enabledCount === 0;
+    }
+
+    function setAuthMode(mode) {
       authMode = mode;
       const registering = mode === "register";
-      $(".auth-dialog").classList.toggle("register-mode", registering);
+      const resetting = mode === "reset";
+      const modeLabels = {
+        login: { submit: "登录", prompt: "还没有账户？", switch: "注册" },
+        register: { submit: "创建账户", prompt: "已有账户？", switch: "登录" },
+        forgot: { submit: "发送重置链接", prompt: "想起密码了？", switch: "返回登录" },
+        reset: { submit: "保存新密码", prompt: "", switch: "" },
+      };
+      $(".auth-dialog").classList.remove("login-mode", "register-mode", "forgot-mode", "reset-mode");
+      $(".auth-dialog").classList.add(`${mode}-mode`);
       document.querySelectorAll("[data-auth-copy]").forEach((element) => { element.hidden = element.dataset.authCopy !== mode; });
       document.querySelectorAll("[data-auth-only]").forEach((element) => { element.hidden = element.dataset.authOnly !== mode; });
-      $("#authSubmit").textContent = registering ? "注册" : "登录";
-      $("#authModeSwitch").textContent = registering ? "登录" : "注册";
-      $("#authConfirmPassword").required = registering;
-      $("#authEmailCode").required = registering && appConfig.cloudMode;
-      $("#authPassword").autocomplete = mode === "register" ? "new-password" : "current-password";
+      document.querySelectorAll("[data-auth-modes]").forEach((element) => {
+        element.hidden = !element.dataset.authModes.split(/\s+/).includes(mode);
+      });
+      $("#authSubmit").textContent = modeLabels[mode].submit;
+      $("#authModePrompt").textContent = modeLabels[mode].prompt;
+      $("#authModeSwitch").textContent = modeLabels[mode].switch;
+      $("#authEmail").required = mode !== "reset";
+      $("#authPassword").required = mode !== "forgot";
+      $("#authConfirmPassword").required = registering || resetting;
+      $("#authPassword").autocomplete = registering || resetting ? "new-password" : "current-password";
+      $("#authPassword").placeholder = resetting ? "请输入新密码" : "请输入密码";
+      $("[data-field-copy=\"password\"]").textContent = resetting ? "新密码" : "密码";
+      updateSocialProviderVisibility();
+    }
+
+    function passwordPairCredentials() {
+      const password = $("#authPassword").value;
+      const confirmation = $("#authConfirmPassword").value;
+      if (password.length < 6) throw new Error("请输入至少 6 位密码");
+      if (password !== confirmation) throw new Error("两次输入的密码不一致");
+      return { password };
     }
 
     function registrationCredentials() {
       const email = $("#authEmail").value.trim().toLowerCase();
-      const password = $("#authPassword").value;
-      const confirmation = $("#authConfirmPassword").value;
+      const { password } = passwordPairCredentials();
       if (!email) throw new Error("请输入邮箱");
-      if (password.length < 6) throw new Error("请输入至少 6 位密码");
-      if (password !== confirmation) throw new Error("两次输入的密码不一致");
       return { email, password };
-    }
-
-    async function sendRegistrationCode() {
-      let credentials;
-      try {
-        credentials = registrationCredentials();
-      } catch (error) {
-        return showToast(error.message, "error");
-      }
-      if (!appConfig.cloudMode) return showToast("本机演示模式无需邮箱验证码", "error");
-      const button = $("#sendEmailCode");
-      button.disabled = true;
-      button.textContent = "正在发送…";
-      try {
-        const path = pendingVerificationEmail ? "/api/auth/resend-signup-code" : "/api/auth/register";
-        const payload = pendingVerificationEmail ? { email: credentials.email } : credentials;
-        const response = await fetch(path, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "验证码发送失败");
-        if (data.signedIn) {
-          await finishCloudAuthentication(data.user, "注册成功，账号正在等待管理员审核");
-          return;
-        }
-        pendingVerificationEmail = credentials.email;
-        ["#authEmail", "#authPassword", "#authConfirmPassword"].forEach((selector) => { $(selector).disabled = true; });
-        startResendCountdown();
-        $("#authEmailCode").focus();
-        showToast("验证码已发送，请查看邮箱");
-      } catch (error) {
-        button.disabled = false;
-        button.textContent = pendingVerificationEmail ? "重新获取" : "获取验证码";
-        showToast(error.message || "验证码发送失败", "error");
-      }
     }
 
     async function handleAuth(event) {
       event.preventDefault();
       const email = $("#authEmail").value.trim().toLowerCase();
       const password = $("#authPassword").value;
-      if (!email || password.length < 6) return showToast("请输入有效邮箱和至少 6 位密码", "error");
-      if (authMode === "register") {
-        try { registrationCredentials(); } catch (error) { return showToast(error.message, "error"); }
+      if (authMode === "forgot") {
+        if (!email) return showToast("请输入需要找回密码的邮箱", "error");
+      } else if (authMode === "register" || authMode === "reset") {
+        try { authMode === "register" ? registrationCredentials() : passwordPairCredentials(); } catch (error) { return showToast(error.message, "error"); }
+      } else if (!email || password.length < 6) {
+        return showToast("请输入有效邮箱和至少 6 位密码", "error");
       }
       if (appConfig.cloudMode) {
         const submit = $("#authSubmit");
         submit.disabled = true;
-        submit.textContent = authMode === "register" ? "正在验证…" : "正在登录…";
+        submit.textContent = { login: "正在登录…", register: "正在创建…", forgot: "正在发送…", reset: "正在保存…" }[authMode];
         try {
-          if (authMode === "register") {
-            const credentials = registrationCredentials();
-            const token = $("#authEmailCode").value.replace(/\s+/g, "");
-            if (!pendingVerificationEmail || credentials.email !== pendingVerificationEmail) throw new Error("请先获取邮箱验证码");
-            if (!/^\d{6,8}$/.test(token)) throw new Error("请输入邮件中的 6～8 位验证码");
-            const response = await fetch("/api/auth/verify-email", {
+          if (authMode === "forgot") {
+            const response = await fetch("/api/auth/password/reset-request", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: credentials.email, token }),
+              body: JSON.stringify({ email }),
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "邮箱验证失败");
-            await finishCloudAuthentication(data.user, "邮箱验证成功，账号正在等待管理员审核");
+            if (!response.ok) throw new Error(data.error || "重置邮件发送失败");
+            setAuthMode("login");
+            showToast("重置链接已发送，请检查邮箱");
+            return;
+          }
+          if (authMode === "reset") {
+            const credentials = passwordPairCredentials();
+            const response = await fetch("/api/auth/password/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ password: credentials.password }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "密码更新失败");
+            closeAuth();
+            showToast("密码已更新，下次请使用新密码登录");
+            return;
+          }
+          if (authMode === "register") {
+            const credentials = registrationCredentials();
+            const response = await fetch("/api/auth/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(credentials),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "注册失败");
+            if (data.signedIn) {
+              await finishCloudAuthentication(data.user, "注册成功，已登录");
+            } else {
+              $("#authPassword").value = "";
+              $("#authConfirmPassword").value = "";
+              setAuthMode("login");
+              showToast("注册成功，请先在邮箱中确认账号后再登录");
+            }
             return;
           }
           const response = await fetch("/api/auth/login", {
@@ -1657,10 +1669,11 @@
           showToast(error.message || "账户操作失败", "error");
         } finally {
           submit.disabled = false;
-          if (elements.authModal.classList.contains("open")) setAuthMode(authMode, { resetVerification: false });
+          if (elements.authModal.classList.contains("open")) setAuthMode(authMode);
         }
         return;
       }
+      if (authMode === "forgot" || authMode === "reset") return showToast("本机模式不支持邮件找回密码", "error");
       const users = getUsers();
       const existing = users.find((user) => user.email === email);
       if (authMode === "register") {
@@ -1673,7 +1686,7 @@
         if (!existing || existing.passwordHash !== await passwordHash(password, existing.salt)) return showToast("邮箱或密码不正确", "error");
       }
       localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ email }));
-      elements.authModal.classList.remove("open");
+      closeAuth();
       elements.authForm.reset();
       updateAccountUI();
       showToast(authMode === "register" ? "注册成功，已登录" : "登录成功");
@@ -1681,9 +1694,16 @@
 
     async function completeOAuthFromHash() {
       const params = new URLSearchParams(location.hash.startsWith("#") ? location.hash.slice(1) : "");
+      const oauthError = params.get("error_description") || params.get("error");
+      if (oauthError) {
+        history.replaceState(null, "", `${location.pathname}${location.search}`);
+        await openAuth("login", { force: true });
+        throw new Error(`第三方登录失败：${oauthError}`);
+      }
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
       if (!accessToken || !refreshToken) return;
+      const recovery = params.get("type") === "recovery";
       history.replaceState(null, "", `${location.pathname}${location.search}`);
       const response = await fetch("/api/auth/oauth-session", {
         method: "POST",
@@ -1693,7 +1713,12 @@
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "第三方登录失败");
       currentUser = data.user;
-      showToast("第三方登录成功");
+      if (recovery) {
+        await openAuth("reset", { force: true });
+        showToast("身份已验证，请设置新密码");
+      } else {
+        showToast("第三方登录成功");
+      }
     }
 
     async function loadCloudState() {
@@ -1712,7 +1737,7 @@
           const socialProviders = [appConfig.googleAuth ? "Google" : "", appConfig.githubAuth ? "GitHub" : ""].filter(Boolean);
           $("#authNote").textContent = socialProviders.length
             ? `支持邮箱与 ${socialProviders.join("、")} 登录。`
-            : "当前支持邮箱登录；Google / GitHub 需在 Supabase 控制台启用。";
+            : "使用邮箱和密码安全登录。";
           await completeOAuthFromHash();
           if (!currentUser) {
             const sessionResponse = await fetch("/api/auth/me");
@@ -1726,7 +1751,7 @@
         } else {
           $("#authNote").textContent = "本机账户和战绩仅保存在此浏览器。";
         }
-        setAuthMode(authMode, { resetVerification: false });
+        setAuthMode(authMode);
       } catch (error) {
         showToast(error.message || "云端配置检查失败", "error");
       }
@@ -2191,24 +2216,20 @@
     ["dragenter", "dragover"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.add("dragover"); }));
     ["dragleave", "drop"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.remove("dragover"); }));
     elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
-    elements.accountButton.addEventListener("click", openAuth);
+    elements.accountButton.addEventListener("click", () => openAuth());
     $("#teamButton").addEventListener("click", openTeamPanel);
     $("#teamClose").addEventListener("click", closeTeamPanel);
     elements.teamModal.addEventListener("click", (event) => { if (event.target === elements.teamModal) closeTeamPanel(); });
     elements.teamContent.addEventListener("submit", handleTeamForm);
     elements.teamContent.addEventListener("click", handleTeamAction);
     $("#authClose").addEventListener("click", closeAuth);
-    elements.authModal.addEventListener("click", (event) => { if (event.target === elements.authModal) closeAuth(); });
     $("#authModeSwitch").addEventListener("click", () => setAuthMode(authMode === "login" ? "register" : "login"));
-    $("#sendEmailCode").addEventListener("click", sendRegistrationCode);
-    $("#forgotPassword").addEventListener("click", () => {
-      const email = $("#authEmail").value.trim();
-      if (!email) {
-        $("#authEmail").focus();
-        return showToast("请先输入需要找回密码的邮箱", "error");
-      }
-      showToast("密码找回功能即将开放；如需立即重置，请联系管理员", "error");
+    $("#forgotPassword").addEventListener("click", () => setAuthMode("forgot"));
+    $("#authConfirmPassword").addEventListener("paste", (event) => {
+      event.preventDefault();
+      showToast("请手动再次输入确认密码", "error");
     });
+    $("#authConfirmPassword").addEventListener("drop", (event) => event.preventDefault());
     document.querySelectorAll("[data-toggle-password]").forEach((button) => button.addEventListener("click", () => {
       const input = document.getElementById(button.dataset.togglePassword);
       const reveal = input.type === "password";
