@@ -119,6 +119,32 @@ function cleanPassword(value) {
   return password;
 }
 
+const APPROVAL_STATUSES = new Set(["pending", "approved", "rejected"]);
+
+function approvalView(profile = {}) {
+  const storedStatus = String(profile.approval_status || "").trim();
+  const status = APPROVAL_STATUSES.has(storedStatus)
+    ? storedStatus
+    : (profile.approved === true ? "approved" : "pending");
+  return {
+    status,
+    comment: String(profile.approval_comment || "").trim(),
+    reviewedAt: profile.reviewed_at || null,
+    approved: status === "approved",
+  };
+}
+
+function cleanReviewDecision(payload) {
+  const status = String(payload?.status || "").trim();
+  const comment = String(payload?.comment || "").trim();
+  if (!["approved", "rejected"].includes(status)) {
+    throw Object.assign(new Error("审核结果必须是通过或未通过"), { status: 400 });
+  }
+  if (!comment) throw Object.assign(new Error("请填写审核评语"), { status: 400 });
+  if (comment.length > 500) throw Object.assign(new Error("审核评语不能超过 500 字"), { status: 400 });
+  return { status, comment };
+}
+
 async function signUp(req, res, payload) {
   const email = cleanEmail(payload?.email);
   const password = cleanPassword(payload?.password);
@@ -197,21 +223,61 @@ function restPath(table, query = "") {
   return `/rest/v1/${table}${query ? `?${query}` : ""}`;
 }
 
+function missingApprovalSchema(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return error?.upstream === true
+    && ["approval_status", "approval_comment", "reviewed_at"].some((column) => message.includes(column));
+}
+
+async function requestOwnProfile(userId, accessToken) {
+  try {
+    return await supabaseRequest(
+      restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approval_status,approval_comment,reviewed_at`),
+      { accessToken },
+    );
+  } catch (error) {
+    if (!missingApprovalSchema(error)) throw error;
+    return supabaseRequest(
+      restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approved`),
+      { accessToken },
+    );
+  }
+}
+
+async function requestAdminProfiles() {
+  try {
+    return await supabaseRequest(
+      restPath("profiles", "select=id,xp,coin,streak,approval_status,approval_comment,reviewed_at,created_at&order=created_at.desc&limit=500"),
+      { useServiceRole: true },
+    );
+  } catch (error) {
+    if (!missingApprovalSchema(error)) throw error;
+    return supabaseRequest(
+      restPath("profiles", "select=id,xp,coin,streak,approved,created_at&order=created_at.desc&limit=500"),
+      { useServiceRole: true },
+    );
+  }
+}
+
 async function getUserState(session) {
   const userId = encodeURIComponent(session.user.id);
   const [profiles, checkins, preferences] = await Promise.all([
-    supabaseRequest(restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approved`), { accessToken: session.accessToken }),
+    requestOwnProfile(userId, session.accessToken),
     supabaseRequest(restPath("checkins", `user_id=eq.${userId}&select=id,score,title,provider,xp,created_at&order=created_at.desc&limit=20`), { accessToken: session.accessToken }),
     supabaseRequest(restPath("ai_preferences", `user_id=eq.${userId}&select=provider,reasoning_mode,detail_level,max_tokens,temperature&limit=1`), { accessToken: session.accessToken }),
   ]);
-  const profile = profiles.data?.[0] || { xp: 0, coin: 0, streak: 0, last_date: null, approved: false };
+  const profile = profiles.data?.[0] || { xp: 0, coin: 0, streak: 0, last_date: null, approval_status: "pending" };
+  const approval = approvalView(profile);
   return {
     profile: {
       xp: Number(profile.xp || 0),
       coin: Number(profile.coin || 0),
       streak: Number(profile.streak || 0),
       lastDate: profile.last_date || "",
-      approved: Boolean(profile.approved),
+      approved: approval.approved,
+      approvalStatus: approval.status,
+      approvalComment: approval.comment,
+      reviewedAt: approval.reviewedAt,
     },
     history: (checkins.data || []).map((item) => ({
       id: item.id,
@@ -255,6 +321,9 @@ async function assertWithinDailyLimit(session) {
     }
     if (String(error.message).includes("ACCOUNT_PENDING_APPROVAL")) {
       throw Object.assign(new Error("账号正在等待管理员审核通过，暂时无法使用打卡功能"), { status: 403 });
+    }
+    if (String(error.message).includes("ACCOUNT_REJECTED")) {
+      throw Object.assign(new Error("账号审核未通过，请查看管理员评语"), { status: 403 });
     }
     throw error;
   }
@@ -421,29 +490,65 @@ async function adminListAuthUsers() {
 
 async function adminListUsers() {
   const [{ data: profileRows }, authUsers] = await Promise.all([
-    supabaseRequest(restPath("profiles", "select=id,xp,coin,streak,approved,created_at&order=created_at.desc&limit=500"), { useServiceRole: true }),
+    requestAdminProfiles(),
     adminListAuthUsers(),
   ]);
   const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
-  return (profileRows || []).map((row) => ({
-    id: row.id,
-    email: emailById.get(row.id) || "(未知邮箱)",
-    approved: Boolean(row.approved),
-    xp: Number(row.xp || 0),
-    coin: Number(row.coin || 0),
-    streak: Number(row.streak || 0),
-    createdAt: row.created_at,
-  }));
+  return (profileRows || []).map((row) => {
+    const approval = approvalView(row);
+    return {
+      id: row.id,
+      email: emailById.get(row.id) || "(未知邮箱)",
+      approved: approval.approved,
+      approvalStatus: approval.status,
+      approvalComment: approval.comment,
+      reviewedAt: approval.reviewedAt,
+      xp: Number(row.xp || 0),
+      coin: Number(row.coin || 0),
+      streak: Number(row.streak || 0),
+      createdAt: row.created_at,
+    };
+  });
+}
+
+function cleanUserId(userId) {
+  const id = String(userId || "").trim();
+  if (!/^[0-9a-f-]{20,64}$/i.test(id)) throw Object.assign(new Error("用户 ID 不正确"), { status: 400 });
+  return id;
+}
+
+async function adminReviewUser(userId, payload) {
+  const id = cleanUserId(userId);
+  const decision = cleanReviewDecision(payload);
+  try {
+    await supabaseRequest(restPath("profiles", `id=eq.${encodeURIComponent(id)}`), {
+      method: "PATCH",
+      useServiceRole: true,
+      prefer: "return=minimal",
+      body: {
+        approval_status: decision.status,
+        approval_comment: decision.comment,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    if (missingApprovalSchema(error)) {
+      throw Object.assign(new Error("数据库审核字段尚未升级，请先执行最新的 supabase-schema.sql"), { status: 503 });
+    }
+    throw error;
+  }
+  return decision;
 }
 
 async function adminSetApproval(userId, approved) {
-  const id = String(userId || "").trim();
-  if (!/^[0-9a-f-]{20,64}$/i.test(id)) throw Object.assign(new Error("用户 ID 不正确"), { status: 400 });
+  if (approved) return adminReviewUser(userId, { status: "approved", comment: "管理员审核通过" });
+  const id = cleanUserId(userId);
   await supabaseRequest(restPath("profiles", `id=eq.${encodeURIComponent(id)}`), {
     method: "PATCH",
     useServiceRole: true,
     prefer: "return=minimal",
-    body: { approved: Boolean(approved) },
+    body: { approval_status: "pending", approval_comment: "", reviewed_at: null, updated_at: new Date().toISOString() },
   });
 }
 
@@ -495,7 +600,8 @@ module.exports = {
   isAdminRequest,
   requireAdmin,
   adminListUsers,
+  adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
-  _test: { parseCookies, encryptSecret, decryptSecret },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema },
 };

@@ -9,9 +9,55 @@ create table if not exists public.profiles (
   coin integer not null default 0 check (coin >= 0),
   streak integer not null default 0 check (streak >= 0),
   last_date date,
+  approval_status text not null default 'pending' check (approval_status in ('pending', 'approved', 'rejected')),
+  approval_comment text not null default '',
+  reviewed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- 兼容已经上线、仅含 approved 布尔字段的旧数据库。
+-- 新增字段时先保持 nullable，完成旧数据迁移后再加默认值和非空约束，脚本可重复执行。
+alter table public.profiles add column if not exists approval_status text;
+alter table public.profiles add column if not exists approval_comment text;
+alter table public.profiles add column if not exists reviewed_at timestamptz;
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'profiles' and column_name = 'approved'
+  ) then
+    execute $migration$
+      update public.profiles
+      set approval_status = case when approved is true then 'approved' else 'pending' end
+      where approval_status is null
+    $migration$;
+  else
+    update public.profiles set approval_status = 'pending' where approval_status is null;
+  end if;
+end;
+$$;
+
+update public.profiles set approval_comment = '' where approval_comment is null;
+alter table public.profiles alter column approval_status set default 'pending';
+alter table public.profiles alter column approval_status set not null;
+alter table public.profiles alter column approval_comment set default '';
+alter table public.profiles alter column approval_comment set not null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_approval_status_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+      add constraint profiles_approval_status_check
+      check (approval_status in ('pending', 'approved', 'rejected'));
+  end if;
+end;
+$$;
 
 create table if not exists public.checkins (
   id uuid primary key default gen_random_uuid(),
@@ -132,6 +178,12 @@ begin
   insert into public.profiles(id) values (v_user) on conflict (id) do nothing;
   select * into v_profile from public.profiles where id = v_user for update;
 
+  if v_profile.approval_status = 'rejected' then
+    raise exception 'ACCOUNT_REJECTED';
+  elsif v_profile.approval_status <> 'approved' then
+    raise exception 'ACCOUNT_PENDING_APPROVAL';
+  end if;
+
   if v_profile.last_date = current_date then
     v_streak := v_profile.streak;
   elsif v_profile.last_date = current_date - 1 then
@@ -180,9 +232,18 @@ as $$
 declare
   v_user uuid := auth.uid();
   v_count integer;
+  v_approval_status text;
 begin
   if v_user is null then raise exception 'Authentication required'; end if;
   if p_limit < 1 or p_limit > 1000 then raise exception 'Invalid quota limit'; end if;
+
+  insert into public.profiles(id) values (v_user) on conflict (id) do nothing;
+  select approval_status into v_approval_status from public.profiles where id = v_user;
+  if v_approval_status = 'rejected' then
+    raise exception 'ACCOUNT_REJECTED';
+  elsif v_approval_status <> 'approved' then
+    raise exception 'ACCOUNT_PENDING_APPROVAL';
+  end if;
 
   insert into public.usage_counters(user_id, usage_date, ai_requests)
   values (v_user, current_date, 1)

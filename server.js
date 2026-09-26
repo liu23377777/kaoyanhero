@@ -652,6 +652,13 @@ const server = http.createServer(async (req, res) => {
       cloud.requireAdmin(req);
       return json(res, 200, { users: await cloud.adminListUsers() });
     }
+    if (req.method === "POST" && url.pathname.startsWith("/api/admin/users/") && url.pathname.endsWith("/review")) {
+      cloud.requireAdmin(req);
+      const segments = url.pathname.split("/");
+      const userId = segments[4];
+      const review = await cloud.adminReviewUser(userId, await readJson(req));
+      return json(res, 200, { ok: true, review });
+    }
     if (req.method === "POST" && url.pathname.startsWith("/api/admin/users/") && (url.pathname.endsWith("/approve") || url.pathname.endsWith("/revoke"))) {
       cloud.requireAdmin(req);
       const segments = url.pathname.split("/");

@@ -471,7 +471,7 @@
     .auth-note { margin-top: 13px; color: var(--muted); font-size: 9px; line-height: 1.5; text-align: center; }
     .admin-modal { position: fixed; inset: 0; z-index: 35; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
     .admin-modal.open { display: flex; }
-    .admin-dialog { width: min(720px, 100%); max-height: 86vh; overflow-y: auto; padding: 25px; border: 2px solid var(--ink); border-radius: 24px; background: var(--paper); box-shadow: 7px 7px 0 var(--blue); position: relative; }
+    .admin-dialog { width: min(820px, 100%); max-height: 86vh; overflow-y: auto; padding: 25px; border: 2px solid var(--ink); border-radius: 24px; background: var(--paper); box-shadow: 7px 7px 0 var(--blue); position: relative; }
     .admin-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--paper-deep); cursor: pointer; }
     .admin-dialog h2 { margin: 0 0 5px; font-size: 22px; }
     .admin-intro { margin: 0 0 18px; color: var(--muted); font-size: 12px; }
@@ -482,16 +482,22 @@
     .admin-refresh, .admin-logout { padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: white; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; }
     .admin-users { display: flex; flex-direction: column; gap: 10px; }
     .admin-user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: white; flex-wrap: wrap; }
-    .admin-user-meta { display: flex; flex-direction: column; gap: 2px; }
+    .admin-user-meta { display: flex; flex: 1 1 230px; flex-direction: column; gap: 2px; min-width: 0; }
     .admin-user-meta strong { font-size: 13px; }
     .admin-user-meta small { color: var(--muted); font-size: 10px; }
     .admin-user-status { padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; white-space: nowrap; }
     .admin-user-status.pending { background: rgba(255,107,53,.14); color: var(--orange-dark); }
     .admin-user-status.approved { background: rgba(47,155,123,.14); color: var(--mint); }
-    .admin-user-actions { display: flex; gap: 8px; }
-    .admin-approve, .admin-revoke { padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 800; }
+    .admin-user-status.rejected { background: rgba(184,58,48,.12); color: #a6322a; }
+    .admin-user-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .admin-approve, .admin-reject, .admin-edit-review, .admin-revoke { padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 800; }
     .admin-approve { background: var(--mint); color: white; }
+    .admin-reject { background: #b83a30; color: white; }
+    .admin-edit-review { background: #edf0fb; color: var(--blue); }
     .admin-revoke { background: var(--paper-deep); color: var(--ink); }
+    .admin-user-review { flex-basis: 100%; display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--paper-deep); color: #485168; font-size: 11px; line-height: 1.55; }
+    .admin-user-review strong { flex: 0 0 auto; color: var(--ink); }
+    .admin-user-review span { overflow-wrap: anywhere; }
     .admin-empty { color: var(--muted); font-size: 12px; text-align: center; padding: 20px 0; }
     .admin-user-view { padding: 7px 12px; border: 1.5px solid var(--ink); border-radius: 999px; background: white; color: var(--ink); cursor: pointer; font-size: 11px; font-weight: 800; }
     .admin-user-checkins { flex-basis: 100%; margin-top: 4px; padding: 10px 12px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 10px; }
@@ -501,8 +507,36 @@
     .admin-checkin-item .admin-checkin-head span { color: var(--muted); font-weight: 600; }
     .admin-checkin-item .admin-checkin-text { font-size: 12px; line-height: 1.6; white-space: pre-wrap; margin: 0 0 6px; }
     .admin-checkin-item .admin-checkin-review { font-size: 11px; line-height: 1.6; color: var(--muted); white-space: pre-wrap; }
-    .approval-banner { display: none; align-items: center; gap: 8px; margin-bottom: 14px; padding: 11px 14px; border: 1.5px solid var(--orange); border-radius: 14px; background: rgba(255,107,53,.09); color: var(--orange-dark); font-size: 12px; font-weight: 700; line-height: 1.5; }
+    .approval-banner { display: none; align-items: flex-start; gap: 10px; margin-bottom: 14px; padding: 12px 14px; border: 1.5px solid var(--orange); border-radius: 14px; background: rgba(255,107,53,.09); color: var(--orange-dark); font-size: 12px; line-height: 1.5; }
     .approval-banner.show { display: flex; }
+    .approval-banner.approved { border-color: var(--mint); background: rgba(47,155,123,.09); color: #24775f; }
+    .approval-banner.rejected { border-color: #b83a30; background: rgba(184,58,48,.08); color: #932f28; }
+    .approval-banner-icon { flex: 0 0 auto; font-size: 17px; line-height: 1.3; }
+    .approval-banner-copy { display: grid; gap: 2px; }
+    .approval-banner-copy strong { color: currentColor; font-size: 12px; }
+    .approval-banner-copy p { margin: 0; font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+    .approval-banner-copy small { color: var(--muted); font-size: 9px; }
+
+    .admin-review-modal { position: fixed; inset: 0; z-index: 38; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.68); backdrop-filter: blur(6px); }
+    .admin-review-modal.open { display: flex; }
+    .admin-review-dialog { width: min(500px, 100%); padding: 24px; border: 2px solid var(--ink); border-radius: 22px; background: var(--paper); box-shadow: 7px 7px 0 var(--yellow); }
+    .admin-review-dialog h3 { margin: 0 0 5px; font-size: 20px; }
+    .admin-review-dialog > p { margin: 0 0 16px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .review-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .review-choice { position: relative; display: flex; align-items: center; gap: 9px; padding: 12px; border: 1.5px solid var(--line); border-radius: 13px; background: white; cursor: pointer; font-size: 12px; font-weight: 900; }
+    .review-choice:has(input:checked) { border-color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+    .review-choice.approved { color: #24775f; }
+    .review-choice.rejected { color: #a6322a; }
+    .review-choice input { accent-color: currentColor; }
+    .admin-review-field { display: grid; gap: 7px; margin-top: 16px; color: var(--muted); font-size: 11px; font-weight: 800; }
+    .admin-review-field textarea { min-height: 112px; resize: vertical; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: white; color: var(--ink); outline: 0; line-height: 1.6; }
+    .admin-review-field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(72,98,204,.1); }
+    .admin-review-count { justify-self: end; color: var(--muted); font-size: 9px; font-weight: 600; }
+    .admin-review-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 17px; }
+    .admin-review-cancel, .admin-review-submit { padding: 10px 15px; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .admin-review-cancel { border: 1.5px solid var(--ink); background: white; color: var(--ink); }
+    .admin-review-submit { border: 0; background: var(--blue); color: white; }
+    .admin-review-submit:disabled { opacity: .6; cursor: wait; }
 
     .toast {
       position: fixed;
@@ -548,6 +582,8 @@
       .score-ring { width: 78px; height: 78px; }
       .reward-strip { grid-template-columns: repeat(3, 1fr); }
       .preview-grid { grid-template-columns: repeat(2, 1fr); }
+      .review-choice-grid { grid-template-columns: 1fr; }
+      .admin-user-actions { width: 100%; justify-content: flex-start; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -598,7 +634,14 @@
           <div class="step-number">STEP 01</div>
         </div>
 
-        <div class="approval-banner" id="approvalBanner">⏳ 账号正在等待管理员审核，审核通过前暂时无法打卡</div>
+        <div class="approval-banner" id="approvalBanner" role="status">
+          <span class="approval-banner-icon" id="approvalBannerIcon" aria-hidden="true">⏳</span>
+          <div class="approval-banner-copy">
+            <strong id="approvalBannerTitle">账号待审核</strong>
+            <p id="approvalBannerMessage">申请已提交，审核通过前暂时无法打卡。</p>
+            <small id="approvalBannerTime" hidden></small>
+          </div>
+        </div>
 
         <label class="field-label" for="studyText">学习内容 <span id="charCount">0 / 4000</span></label>
         <textarea id="studyText" maxlength="4000" placeholder="例如：数学复习极限 3 小时，完成 40 道题，错了 7 道。主要卡在洛必达法则的使用条件，已整理到错题本。"></textarea>
@@ -773,6 +816,26 @@
     </div>
   </div>
 
+  <div class="admin-review-modal" id="adminReviewModal" role="dialog" aria-modal="true" aria-labelledby="adminReviewTitle">
+    <form class="admin-review-dialog" id="adminReviewForm">
+      <h3 id="adminReviewTitle">填写审核结果</h3>
+      <p id="adminReviewUser">请选择结果并给用户留下一条清晰的评语。</p>
+      <div class="review-choice-grid">
+        <label class="review-choice approved"><input type="radio" name="reviewStatus" value="approved" required><span>✓ 通过</span></label>
+        <label class="review-choice rejected"><input type="radio" name="reviewStatus" value="rejected" required><span>× 未通过</span></label>
+      </div>
+      <label class="admin-review-field" for="adminReviewComment">
+        审核评语
+        <textarea id="adminReviewComment" maxlength="500" required placeholder="例如：资料完整，可以开始打卡。"></textarea>
+        <span class="admin-review-count" id="adminReviewCount">0 / 500</span>
+      </label>
+      <div class="admin-review-actions">
+        <button class="admin-review-cancel" id="adminReviewCancel" type="button">取消</button>
+        <button class="admin-review-submit" id="adminReviewSubmit" type="submit">确认审核</button>
+      </div>
+    </form>
+  </div>
+
   <script>
     const STORAGE_KEY = "kaoyanHeroV30";
     const LEGACY_STORAGE_KEY = "kaoyanHeroV21";
@@ -787,8 +850,11 @@
     let authMode = "login";
     let appConfig = { cloudMode: false, googleAuth: false, dailyAiRequestLimit: 10 };
     let currentUser = null;
+    let accountApproval = { status: "approved", comment: "", reviewedAt: null };
     let accountApproved = true;
     let adminAuthenticated = false;
+    let adminUsersById = new Map();
+    let adminReviewTargetId = "";
 
     const $ = (selector) => document.querySelector(selector);
     const elements = {
@@ -862,8 +928,16 @@
       state.streak = Number(profile.streak || 0);
       state.lastDate = profile.lastDate || "";
       state.history = Array.isArray(data?.history) ? data.history : [];
-      accountApproved = profile.approved !== false;
-      setApprovalBanner(appConfig.cloudMode && Boolean(currentUser) && !accountApproved);
+      const status = ["pending", "approved", "rejected"].includes(profile.approvalStatus)
+        ? profile.approvalStatus
+        : (profile.approved === true ? "approved" : "pending");
+      accountApproval = {
+        status,
+        comment: String(profile.approvalComment || "").trim(),
+        reviewedAt: profile.reviewedAt || null,
+      };
+      accountApproved = status === "approved";
+      setApprovalBanner(appConfig.cloudMode && currentUser ? accountApproval : null);
       if (data?.preferences) {
         localStorage.setItem("kaoyanAiProvider", data.preferences.provider || "glm");
         applyAiSettings({
@@ -884,9 +958,49 @@
       return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
     }
 
-    function setApprovalBanner(show) {
+    function formatReviewDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+      }).format(date);
+    }
+
+    function setApprovalBanner(approval) {
       const banner = $("#approvalBanner");
-      if (banner) banner.classList.toggle("show", Boolean(show));
+      if (!banner) return;
+      if (!approval) {
+        banner.className = "approval-banner";
+        return;
+      }
+      const details = {
+        pending: {
+          icon: "⏳",
+          title: "账号待审核",
+          message: "申请已提交，审核通过前暂时无法打卡。",
+        },
+        approved: {
+          icon: "✓",
+          title: "账号已通过",
+          message: approval.comment || "管理员已通过你的申请，可以正常打卡。",
+        },
+        rejected: {
+          icon: "×",
+          title: "账号未通过",
+          message: approval.comment || "管理员未通过你的申请，请联系管理员了解原因。",
+        },
+      }[approval.status] || null;
+      if (!details) {
+        banner.className = "approval-banner";
+        return;
+      }
+      banner.className = `approval-banner show ${approval.status}`;
+      $("#approvalBannerIcon").textContent = details.icon;
+      $("#approvalBannerTitle").textContent = details.title;
+      $("#approvalBannerMessage").textContent = details.message;
+      const reviewed = formatReviewDate(approval.reviewedAt);
+      $("#approvalBannerTime").hidden = !reviewed;
+      $("#approvalBannerTime").textContent = reviewed ? `审核于 ${reviewed}` : "";
     }
 
     function showToast(message, type = "") {
@@ -1085,7 +1199,12 @@
         return showToast("请先登录云端账户再打卡", "error");
       }
       if (appConfig.cloudMode && currentUser && !accountApproved) {
-        return showToast("账号正在等待管理员审核通过，暂时无法打卡", "error");
+        return showToast(
+          accountApproval.status === "rejected"
+            ? `账号审核未通过：${accountApproval.comment || "请查看审核评语"}`
+            : "账号正在等待管理员审核通过，暂时无法打卡",
+          "error",
+        );
       }
       if (text.length < 5 && !selectedImages.length) return showToast("至少写 5 个字，或上传学习照片", "error");
       if (!current?.configured) return showToast(`${current?.name || "该平台"} 尚未配置 API Key，请先填写 .env`, "error");
@@ -1215,8 +1334,9 @@
           if (appConfig.cloudMode) {
             await fetch("/api/auth/logout", { method: "POST" });
             currentUser = null;
+            accountApproval = { status: "approved", comment: "", reviewedAt: null };
             accountApproved = true;
-            setApprovalBanner(false);
+            setApprovalBanner(null);
             Object.assign(state, { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] });
             updateDashboard();
             loadIntegrations();
@@ -1266,7 +1386,7 @@
           updateAccountUI();
           await loadCloudState();
           await loadIntegrations();
-          showToast(authMode === "register" ? "云端账户创建成功" : "云端登录成功");
+          showToast(authMode === "register" ? "注册成功，账号正在等待管理员审核" : "云端登录成功");
         } catch (error) {
           showToast(error.message || "账户操作失败", "error");
         } finally {
@@ -1351,6 +1471,7 @@
     }
 
     function closeAdminPanel() {
+      closeAdminReview();
       $("#adminModal").classList.remove("open");
     }
 
@@ -1405,34 +1526,125 @@
 
     async function loadAdminUsers() {
       const list = $("#adminUsers");
+      adminUsersById = new Map();
       list.innerHTML = '<div class="admin-empty">正在加载用户列表…</div>';
       try {
         const response = await fetch("/api/admin/users");
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "无法读取用户列表");
         const users = Array.isArray(data.users) ? data.users : [];
-        $("#adminSummary").textContent = `共 ${users.length} 位用户 · 待审核 ${users.filter((user) => !user.approved).length} 位`;
+        adminUsersById = new Map(users.map((user) => [user.id, user]));
+        const counts = users.reduce((result, user) => {
+          const status = ["pending", "approved", "rejected"].includes(user.approvalStatus)
+            ? user.approvalStatus
+            : (user.approved ? "approved" : "pending");
+          result[status] += 1;
+          return result;
+        }, { pending: 0, approved: 0, rejected: 0 });
+        $("#adminSummary").textContent = `共 ${users.length} 位 · 待审核 ${counts.pending} · 已通过 ${counts.approved} · 未通过 ${counts.rejected}`;
         if (!users.length) {
           list.innerHTML = '<div class="admin-empty">暂无注册用户</div>';
           return;
         }
-        list.innerHTML = users.map((user) => `
-          <div class="admin-user-row" data-user-id="${escapeHtml(user.id)}">
-            <div class="admin-user-meta">
-              <strong>${escapeHtml(user.email)}</strong>
-              <small>注册于 ${escapeHtml(formatCloudDate(user.createdAt))} · 经验 ${Number(user.xp) || 0} · 连胜 ${Number(user.streak) || 0}</small>
-            </div>
-            <span class="admin-user-status ${user.approved ? "approved" : "pending"}">${user.approved ? "已通过" : "待审核"}</span>
-            <div class="admin-user-actions">
-              <button class="admin-user-view" type="button" data-action="checkins">查看打卡记录</button>
-              ${user.approved
-                ? `<button class="admin-revoke" type="button" data-action="revoke">撤销</button>`
-                : `<button class="admin-approve" type="button" data-action="approve">通过</button>`}
-            </div>
-            <div class="admin-user-checkins" hidden></div>
-          </div>`).join("");
+        list.innerHTML = users.map(renderAdminUser).join("");
       } catch (error) {
         list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "加载失败")}</div>`;
+      }
+    }
+
+    function renderAdminUser(user) {
+      const status = ["pending", "approved", "rejected"].includes(user.approvalStatus)
+        ? user.approvalStatus
+        : (user.approved ? "approved" : "pending");
+      const statusLabel = { pending: "待审核", approved: "已通过", rejected: "未通过" }[status];
+      const comment = String(user.approvalComment || "").trim();
+      const reviewed = formatReviewDate(user.reviewedAt);
+      const reviewLine = status === "pending" ? "" : `
+        <div class="admin-user-review">
+          <strong>管理员评语</strong>
+          <span>${escapeHtml(comment || "暂无评语，请点击修改评语补充")}${reviewed ? ` · ${escapeHtml(reviewed)}` : ""}</span>
+        </div>`;
+      let reviewActions;
+      if (status === "approved") {
+        reviewActions = `
+          <button class="admin-edit-review" type="button" data-action="review" data-review-status="approved">修改评语</button>
+          <button class="admin-reject" type="button" data-action="review" data-review-status="rejected">改为未通过</button>`;
+      } else if (status === "rejected") {
+        reviewActions = `
+          <button class="admin-approve" type="button" data-action="review" data-review-status="approved">改为通过</button>
+          <button class="admin-edit-review" type="button" data-action="review" data-review-status="rejected">修改评语</button>`;
+      } else {
+        reviewActions = `
+          <button class="admin-approve" type="button" data-action="review" data-review-status="approved">通过</button>
+          <button class="admin-reject" type="button" data-action="review" data-review-status="rejected">未通过</button>`;
+      }
+      return `
+        <div class="admin-user-row" data-user-id="${escapeHtml(user.id)}">
+          <div class="admin-user-meta">
+            <strong>${escapeHtml(user.email)}</strong>
+            <small>注册于 ${escapeHtml(formatCloudDate(user.createdAt))} · 经验 ${Number(user.xp) || 0} · 连胜 ${Number(user.streak) || 0}</small>
+          </div>
+          <span class="admin-user-status ${status}">${statusLabel}</span>
+          <div class="admin-user-actions">
+            <button class="admin-user-view" type="button" data-action="checkins">查看打卡记录</button>
+            ${reviewActions}
+          </div>
+          ${reviewLine}
+          <div class="admin-user-checkins" hidden></div>
+        </div>`;
+    }
+
+    function openAdminReview(userId, status) {
+      const user = adminUsersById.get(userId);
+      if (!user || !["approved", "rejected"].includes(status)) return;
+      adminReviewTargetId = userId;
+      $("#adminReviewTitle").textContent = status === "approved" ? "通过用户申请" : "标记为未通过";
+      $("#adminReviewUser").textContent = user.email;
+      const radio = document.querySelector(`input[name="reviewStatus"][value="${status}"]`);
+      if (radio) radio.checked = true;
+      const currentStatus = user.approvalStatus || (user.approved ? "approved" : "pending");
+      const comment = status === currentStatus ? String(user.approvalComment || "") : "";
+      $("#adminReviewComment").value = comment;
+      $("#adminReviewComment").placeholder = status === "approved"
+        ? "例如：资料完整，可以开始打卡。"
+        : "例如：邮箱信息不完整，请补充后重新申请。";
+      $("#adminReviewCount").textContent = `${comment.length} / 500`;
+      $("#adminReviewModal").classList.add("open");
+      $("#adminReviewComment").focus();
+    }
+
+    function closeAdminReview() {
+      adminReviewTargetId = "";
+      $("#adminReviewModal").classList.remove("open");
+      $("#adminReviewForm").reset();
+      $("#adminReviewCount").textContent = "0 / 500";
+    }
+
+    async function handleAdminReviewSubmit(event) {
+      event.preventDefault();
+      const status = document.querySelector('input[name="reviewStatus"]:checked')?.value;
+      const comment = $("#adminReviewComment").value.trim();
+      if (!adminReviewTargetId || !status) return showToast("请选择审核结果", "error");
+      if (!comment) return showToast("请填写审核评语", "error");
+      const submit = $("#adminReviewSubmit");
+      submit.disabled = true;
+      submit.textContent = "正在保存…";
+      try {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(adminReviewTargetId)}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, comment }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "审核保存失败");
+        closeAdminReview();
+        showToast(status === "approved" ? "已通过该用户并保存评语" : "已标记为未通过并保存评语");
+        await loadAdminUsers();
+      } catch (error) {
+        showToast(error.message || "审核保存失败", "error");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "确认审核";
       }
     }
 
@@ -1489,16 +1701,8 @@
         await toggleAdminCheckins(row, button);
         return;
       }
-      button.disabled = true;
-      try {
-        const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/${action}`, { method: "POST" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "操作失败");
-        showToast(action === "approve" ? "已通过该用户" : "已撤销该用户的使用权限");
-        await loadAdminUsers();
-      } catch (error) {
-        showToast(error.message || "操作失败", "error");
-        button.disabled = false;
+      if (action === "review") {
+        openAdminReview(userId, button.dataset.reviewStatus);
       }
     }
 
@@ -1540,6 +1744,12 @@
     $("#adminLogout").addEventListener("click", handleAdminLogout);
     $("#adminRefresh").addEventListener("click", loadAdminUsers);
     $("#adminUsers").addEventListener("click", handleAdminUserAction);
+    $("#adminReviewCancel").addEventListener("click", closeAdminReview);
+    $("#adminReviewModal").addEventListener("click", (event) => { if (event.target === $("#adminReviewModal")) closeAdminReview(); });
+    $("#adminReviewForm").addEventListener("submit", handleAdminReviewSubmit);
+    $("#adminReviewComment").addEventListener("input", (event) => {
+      $("#adminReviewCount").textContent = `${event.target.value.length} / 500`;
+    });
     window.addEventListener("hashchange", () => { if (location.hash === "#admin") openAdminPanel(); });
 
     async function bootstrap() {

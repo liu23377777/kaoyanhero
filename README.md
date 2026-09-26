@@ -23,6 +23,8 @@ V3 支持一次上传最多 6 张学习图片、按知识点生成系统复盘�
 ```env
 SUPABASE_URL=https://你的项目.supabase.co
 SUPABASE_ANON_KEY=你的匿名公开Key
+SUPABASE_SERVICE_ROLE_KEY=你的Legacy service_role Key
+ADMIN_PASSWORD=管理后台独立强密码
 APP_ENCRYPTION_KEY=至少32个字符且部署后不再更换的随机密钥
 PUBLIC_APP_URL=http://localhost:3000
 DAILY_AI_REQUEST_LIMIT=10
@@ -37,6 +39,14 @@ ENABLE_GOOGLE_AUTH=true
 ```
 
 `APP_ENCRYPTION_KEY` 用于 AES-256-GCM 加密每位用户的 Habitica Token。更换此值会导致已保存的 Token 无法解密。
+
+## 管理员审核
+
+访问 `/#admin` 进入管理后台。新注册账户默认状态为“待审核”，管理员需要选择“通过”或“未通过”并填写评语；审核结果、评语与审核时间会显示给该用户。只有“已通过”账户可以提交 AI 打卡，数据库函数也会在服务端再次校验状态。
+
+如果数据库是在审核功能上线前创建的，请在 Supabase SQL Editor 中重新完整执行一次最新的 `supabase-schema.sql`。脚本会保留现有用户数据，把旧的 `approved=true` 迁移为“已通过”、其他旧记录迁移为“待审核”，并新增三态审核与评语字段。脚本不会把现有已通过用户批量重置。
+
+`SUPABASE_SERVICE_ROLE_KEY` 与 `ADMIN_PASSWORD` 只能保存在服务端环境变量中。管理员用户列表需要 Legacy `service_role` Key；不要使用 `anon`/publishable Key，也不要把该密钥写入网页或提交到 Git。
 
 ## Render 免费部署
 
