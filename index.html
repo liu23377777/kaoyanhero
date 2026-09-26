@@ -872,7 +872,7 @@
         <h3>输入邮箱验证码</h3>
         <p>验证码已发送到<strong id="verificationEmail"></strong></p>
         <form id="verificationForm">
-          <input class="otp-input" id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required aria-label="6 位邮箱验证码" placeholder="000000">
+          <input class="otp-input" id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" required aria-label="6 到 8 位邮箱验证码" placeholder="00000000">
           <button class="auth-submit" id="verificationSubmit" type="submit">验证并登录</button>
         </form>
         <div class="verification-actions"><button class="verification-link" id="verificationBack" type="button">更换邮箱</button><button class="verification-link" id="verificationResend" type="button">重新发送验证码</button></div>
@@ -1585,7 +1585,7 @@
     async function handleEmailVerification(event) {
       event.preventDefault();
       const token = $("#verificationCode").value.replace(/\s+/g, "");
-      if (!pendingVerificationEmail || !/^\d{6}$/.test(token)) return showToast("请输入邮件中的 6 位验证码", "error");
+      if (!pendingVerificationEmail || !/^\d{6,8}$/.test(token)) return showToast("请输入邮件中的 6～8 位验证码", "error");
       const submit = $("#verificationSubmit");
       submit.disabled = true;
       submit.textContent = "正在验证…";

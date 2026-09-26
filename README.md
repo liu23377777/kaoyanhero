@@ -36,7 +36,7 @@ DAILY_AI_REQUEST_LIMIT=10
 
 ## 邮箱验证码注册
 
-云端注册采用“邮箱 + 密码 → 邮箱验证码 → 自动登录”的两步流程。需要在 Supabase Dashboard 完成以下设置：
+云端注册采用“邮箱 + 密码 → 邮箱验证码 → 自动登录”的两步流程。网站兼容 Supabase 当前可配置的 6～8 位邮箱验证码。需要在 Supabase Dashboard 完成以下设置：
 
 1. Authentication > Sign In / Providers > Email 中保持 Confirm email 开启。
 2. Authentication > Email Templates > Confirm signup，把模板中的确认链接改为 `{{ .Token }}` 验证码。

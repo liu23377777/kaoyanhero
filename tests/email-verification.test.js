@@ -20,9 +20,11 @@ function withSupabaseMock(t, handler) {
   });
 }
 
-test("accepts exactly six numeric characters as an email verification code", () => {
+test("accepts the six-to-eight digit email verification codes supported by Supabase", () => {
   assert.equal(cloud._test.cleanEmailOtp(" 123456 "), "123456");
+  assert.equal(cloud._test.cleanEmailOtp("12345678"), "12345678");
   assert.throws(() => cloud._test.cleanEmailOtp("12345"), (error) => error.status === 400);
+  assert.throws(() => cloud._test.cleanEmailOtp("123456789"), (error) => error.status === 400);
   assert.throws(() => cloud._test.cleanEmailOtp("12A456"), (error) => error.status === 400);
 });
 
