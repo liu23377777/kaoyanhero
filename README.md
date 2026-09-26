@@ -40,6 +40,19 @@ DAILY_AI_REQUEST_LIMIT=10
 ENABLE_GOOGLE_AUTH=true
 ```
 
+如需 GitHub 登录，先在 GitHub Developer settings 创建 OAuth App：Homepage URL 填线上站点地址，Authorization callback URL 填 Supabase 项目 Google/GitHub Provider 页面显示的 callback URL。然后在 Supabase Authentication > Providers > GitHub 中填入 Client ID 与 Client Secret，并设置：
+
+```env
+ENABLE_GITHUB_AUTH=true
+```
+
+本项目的线上地址和 Supabase OAuth 回调地址分别是：
+
+```text
+https://kaoyan-hero.onrender.com
+https://vhkkbahwzoqhbydmrobg.supabase.co/auth/v1/callback
+```
+
 `APP_ENCRYPTION_KEY` 用于 AES-256-GCM 加密每位用户的 Habitica Token。更换此值会导致已保存的 Token 无法解密。
 
 ## 管理员审核

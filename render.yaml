@@ -27,6 +27,8 @@ services:
         value: true
       - key: ENABLE_GOOGLE_AUTH
         value: false
+      - key: ENABLE_GITHUB_AUTH
+        value: false
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL

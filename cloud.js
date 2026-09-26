@@ -18,6 +18,7 @@ function publicConfig() {
   return {
     cloudMode: configured(),
     googleAuth: configured() && process.env.ENABLE_GOOGLE_AUTH === "true",
+    githubAuth: configured() && process.env.ENABLE_GITHUB_AUTH === "true",
     dailyAiRequestLimit: dailyLimit(),
   };
 }
@@ -488,6 +489,13 @@ function googleOAuthUrl(req) {
   return `${supabaseBase()}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
 }
 
+function githubOAuthUrl(req) {
+  if (!publicConfig().githubAuth) throw Object.assign(new Error("GitHub 登录尚未在服务端启用"), { status: 503 });
+  if (!process.env.PUBLIC_APP_URL) throw Object.assign(new Error("启用 GitHub 登录前必须配置 PUBLIC_APP_URL"), { status: 503 });
+  const redirectTo = `${String(process.env.PUBLIC_APP_URL).replace(/\/$/, "")}/`;
+  return `${supabaseBase()}/auth/v1/authorize?provider=github&redirect_to=${encodeURIComponent(redirectTo)}`;
+}
+
 // ---- Admin panel（新用户审核）----
 
 function adminSecret() {
@@ -679,6 +687,7 @@ module.exports = {
   saveHabiticaConnection,
   getHabiticaConnection,
   googleOAuthUrl,
+  githubOAuthUrl,
   adminLogin,
   adminLogout,
   isAdminRequest,

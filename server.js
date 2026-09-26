@@ -609,6 +609,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(302, { Location: cloud.googleOAuthUrl(req), "Cache-Control": "no-store" });
       return res.end();
     }
+    if (req.method === "GET" && url.pathname === "/api/auth/oauth/github") {
+      res.writeHead(302, { Location: cloud.githubOAuthUrl(req), "Cache-Control": "no-store" });
+      return res.end();
+    }
     if (req.method === "GET" && url.pathname === "/api/user/state") {
       const session = await cloud.requireSession(req, res);
       return json(res, 200, await cloud.getUserState(session));
