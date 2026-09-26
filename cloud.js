@@ -120,6 +120,14 @@ function cleanPassword(value) {
   return password;
 }
 
+function cleanEmailOtp(value) {
+  const token = String(value || "").replace(/\s+/g, "");
+  if (!/^\d{6}$/.test(token)) {
+    throw Object.assign(new Error("请输入邮件中的 6 位验证码"), { status: 400 });
+  }
+  return token;
+}
+
 const APPROVAL_STATUSES = new Set(["pending", "approved", "rejected"]);
 
 function approvalView(profile = {}) {
@@ -170,6 +178,44 @@ async function signIn(req, res, payload) {
   }
   setSessionCookies(req, res, data);
   return { user: { id: data.user.id, email: data.user.email }, signedIn: true };
+}
+
+async function verifyEmailOtp(req, res, payload) {
+  const email = cleanEmail(payload?.email);
+  const token = cleanEmailOtp(payload?.token);
+  let data;
+  try {
+    ({ data } = await supabaseRequest("/auth/v1/verify", {
+      method: "POST",
+      body: { type: "email", email, token },
+    }));
+  } catch (error) {
+    if ([400, 401, 403].includes(error.status)) {
+      throw Object.assign(new Error("验证码不正确或已过期，请重新获取"), { status: 400 });
+    }
+    throw error;
+  }
+  if (!data?.access_token || !data?.refresh_token || !data?.user) {
+    throw Object.assign(new Error("邮箱验证成功，但登录会话创建失败，请直接登录"), { status: 502 });
+  }
+  setSessionCookies(req, res, data);
+  return { user: { id: data.user.id, email: data.user.email }, signedIn: true };
+}
+
+async function resendSignupOtp(payload) {
+  const email = cleanEmail(payload?.email);
+  try {
+    await supabaseRequest("/auth/v1/resend", {
+      method: "POST",
+      body: { type: "signup", email },
+    });
+  } catch (error) {
+    if (error.status === 429) {
+      throw Object.assign(new Error("验证码发送过于频繁，请一分钟后再试"), { status: 429 });
+    }
+    throw error;
+  }
+  return { ok: true };
 }
 
 async function acceptOAuthSession(req, res, payload) {
@@ -671,6 +717,8 @@ module.exports = {
   publicConfig,
   signUp,
   signIn,
+  verifyEmailOtp,
+  resendSignupOtp,
   acceptOAuthSession,
   sessionFromRequest,
   requireSession,
@@ -696,5 +744,5 @@ module.exports = {
   adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, cleanEmailOtp },
 };

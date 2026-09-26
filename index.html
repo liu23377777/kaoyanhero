@@ -473,6 +473,18 @@
     .social-button:hover { border-color: var(--ink); background: var(--paper-deep); }
     .social-icon { width: 14px; height: 14px; fill: currentColor; }
     .auth-note { margin-top: 13px; color: var(--muted); font-size: 9px; line-height: 1.5; text-align: center; }
+    .auth-verification[hidden] { display: none; }
+    .auth-verification { padding-top: 3px; text-align: center; }
+    .verification-mark { width: 62px; height: 62px; display: grid; place-items: center; margin: 2px auto 14px; border: 2px solid var(--ink); border-radius: 19px; background: var(--yellow); box-shadow: 4px 4px 0 var(--ink); font-size: 27px; transform: rotate(-2deg); }
+    .auth-verification h3 { margin: 0 0 7px; font-size: 19px; }
+    .auth-verification > p { margin: 0 auto 16px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .auth-verification > p strong { display: block; color: var(--ink); overflow-wrap: anywhere; }
+    .otp-input { width: 100%; padding: 13px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: white; color: var(--ink); outline: 0; text-align: center; font-family: Consolas, monospace; font-size: 22px; font-weight: 900; letter-spacing: .42em; }
+    .otp-input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(71,107,214,.1); }
+    .verification-actions { display: flex; align-items: center; justify-content: center; gap: 13px; margin-top: 13px; }
+    .verification-link { padding: 0; border: 0; background: transparent; color: var(--blue); cursor: pointer; font-size: 10px; font-weight: 800; }
+    .verification-link:disabled { color: var(--muted); cursor: wait; }
+    .verification-tip { margin-top: 15px; padding: 10px 12px; border-radius: 11px; background: var(--paper-deep); color: var(--muted); font-size: 9px; line-height: 1.55; text-align: left; }
     .admin-modal { position: fixed; inset: 0; z-index: 35; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
     .admin-modal.open { display: flex; }
     .admin-dialog { width: min(820px, 100%); max-height: 86vh; overflow-y: auto; padding: 25px; border: 2px solid var(--ink); border-radius: 24px; background: var(--paper); box-shadow: 7px 7px 0 var(--blue); position: relative; }
@@ -841,18 +853,31 @@
       <button class="auth-close" id="authClose" type="button" aria-label="关闭">×</button>
       <h2 id="authTitle">加入考研勇者</h2>
       <p id="authIntro">登录后在不同设备同步等级、金币、连胜与学习战绩。</p>
-      <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">登录</button><button class="auth-tab" type="button" data-auth-mode="register">注册</button></div>
-      <form id="authForm">
-        <label class="auth-field">邮箱<input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com"></label>
-        <label class="auth-field">密码<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 位"></label>
-        <button class="auth-submit" id="authSubmit" type="submit">登录</button>
-      </form>
-      <div class="auth-divider">或使用第三方账户</div>
-      <div class="social-buttons">
-        <button class="social-button" type="button" data-social="Google"><span aria-hidden="true">G</span><span>Google</span></button>
-        <button class="social-button" type="button" data-social="GitHub"><svg class="social-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.29-5.27-5.68 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.16 1.18A11 11 0 0 1 12 6.14c.98 0 1.94.13 2.85.39 2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.82 1.19 3.08 0 4.4-2.71 5.38-5.29 5.67.42.36.79 1.06.79 2.14v3.27c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>GitHub</span></button>
+      <div id="authPrimary">
+        <div class="auth-tabs"><button class="auth-tab active" type="button" data-auth-mode="login">登录</button><button class="auth-tab" type="button" data-auth-mode="register">注册</button></div>
+        <form id="authForm">
+          <label class="auth-field">邮箱<input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com"></label>
+          <label class="auth-field">密码<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="至少 6 位"></label>
+          <button class="auth-submit" id="authSubmit" type="submit">登录</button>
+        </form>
+        <div class="auth-divider">或使用第三方账户</div>
+        <div class="social-buttons">
+          <button class="social-button" type="button" data-social="Google"><span aria-hidden="true">G</span><span>Google</span></button>
+          <button class="social-button" type="button" data-social="GitHub"><svg class="social-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.29-5.27-5.68 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.16 1.18A11 11 0 0 1 12 6.14c.98 0 1.94.13 2.85.39 2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.82 1.19 3.08 0 4.4-2.71 5.38-5.29 5.67.42.36.79 1.06.79 2.14v3.27c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>GitHub</span></button>
+        </div>
+        <div class="auth-note" id="authNote">正在检查云端账户服务…</div>
       </div>
-      <div class="auth-note" id="authNote">正在检查云端账户服务…</div>
+      <section class="auth-verification" id="authVerification" hidden>
+        <div class="verification-mark" aria-hidden="true">✉</div>
+        <h3>输入邮箱验证码</h3>
+        <p>验证码已发送到<strong id="verificationEmail"></strong></p>
+        <form id="verificationForm">
+          <input class="otp-input" id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required aria-label="6 位邮箱验证码" placeholder="000000">
+          <button class="auth-submit" id="verificationSubmit" type="submit">验证并登录</button>
+        </form>
+        <div class="verification-actions"><button class="verification-link" id="verificationBack" type="button">更换邮箱</button><button class="verification-link" id="verificationResend" type="button">重新发送验证码</button></div>
+        <div class="verification-tip">没有收到？请检查垃圾邮件。出于安全限制，验证码至少间隔 60 秒才能重新发送。</div>
+      </section>
     </div>
   </div>
 
@@ -925,6 +950,8 @@
     let providers = [];
     let toastTimer;
     let authMode = "login";
+    let pendingVerificationEmail = "";
+    let resendCountdownTimer = null;
     let appConfig = { cloudMode: false, googleAuth: false, githubAuth: false, dailyAiRequestLimit: 10 };
     let currentUser = null;
     let accountApproval = { status: "approved", comment: "", reviewedAt: null };
@@ -944,6 +971,7 @@
       toast: $("#toast"), emptyReview: $("#emptyReview"), resultReview: $("#resultReview"), reviewBody: $("#reviewBody"),
       rewardStrip: $("#rewardStrip"), modelBadge: $("#modelBadge"), historyList: $("#historyList"),
       accountButton: $("#accountButton"), authModal: $("#authModal"), authForm: $("#authForm"),
+      authPrimary: $("#authPrimary"), authVerification: $("#authVerification"), verificationForm: $("#verificationForm"),
       teamModal: $("#teamModal"), teamContent: $("#teamContent"),
       habiticaSetup: $("#habiticaSetup"), habiticaForm: $("#habiticaForm"), habiticaConnect: $("#habiticaConnect")
     };
@@ -1407,6 +1435,72 @@
       elements.accountButton.title = session?.email ? `已登录：${session.email}；点击可退出` : appConfig.cloudMode ? "登录云端账户" : "登录本机账户";
     }
 
+    function defaultAuthIntro() {
+      return appConfig.cloudMode
+        ? "登录后在不同设备同步等级、金币、连胜与学习战绩。"
+        : "当前为本机演示模式，配置 Supabase 后自动切换为云端账户。";
+    }
+
+    function stopResendCountdown() {
+      if (resendCountdownTimer) clearInterval(resendCountdownTimer);
+      resendCountdownTimer = null;
+    }
+
+    function startResendCountdown(seconds = 60) {
+      stopResendCountdown();
+      let remaining = seconds;
+      const button = $("#verificationResend");
+      const render = () => {
+        button.disabled = remaining > 0;
+        button.textContent = remaining > 0 ? `重新发送（${remaining} 秒）` : "重新发送验证码";
+      };
+      render();
+      resendCountdownTimer = setInterval(() => {
+        remaining -= 1;
+        render();
+        if (remaining <= 0) stopResendCountdown();
+      }, 1000);
+    }
+
+    function resetEmailVerification() {
+      stopResendCountdown();
+      pendingVerificationEmail = "";
+      elements.authPrimary.hidden = false;
+      elements.authVerification.hidden = true;
+      elements.verificationForm.reset();
+      $("#verificationResend").disabled = false;
+      $("#verificationResend").textContent = "重新发送验证码";
+      $("#authTitle").textContent = "加入考研勇者";
+      $("#authIntro").textContent = defaultAuthIntro();
+    }
+
+    function showEmailVerification(email) {
+      pendingVerificationEmail = email;
+      elements.authPrimary.hidden = true;
+      elements.authVerification.hidden = false;
+      $("#authTitle").textContent = "验证邮箱";
+      $("#authIntro").textContent = "完成邮箱验证后，账户才会正式创建。";
+      $("#verificationEmail").textContent = email;
+      $("#verificationCode").value = "";
+      startResendCountdown();
+      $("#verificationCode").focus();
+    }
+
+    function closeAuth() {
+      elements.authModal.classList.remove("open");
+      resetEmailVerification();
+    }
+
+    async function finishCloudAuthentication(user, message) {
+      currentUser = user;
+      closeAuth();
+      elements.authForm.reset();
+      updateAccountUI();
+      await loadCloudState();
+      await loadIntegrations();
+      showToast(message);
+    }
+
     async function openAuth() {
       if (getSession()?.email) {
         if (window.confirm(appConfig.cloudMode ? "要退出当前云端账户吗？" : "要退出当前本机账户吗？")) {
@@ -1428,6 +1522,7 @@
         }
         return;
       }
+      resetEmailVerification();
       elements.authModal.classList.add("open");
       $("#authEmail").focus();
     }
@@ -1457,16 +1552,10 @@
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "账户操作失败");
           if (data.needsEmailConfirmation) {
-            setAuthMode("login");
-            return showToast("注册成功，请先到邮箱完成验证", "error");
+            showEmailVerification(email);
+            return showToast("验证码已发送，请查看邮箱");
           }
-          currentUser = data.user;
-          elements.authModal.classList.remove("open");
-          elements.authForm.reset();
-          updateAccountUI();
-          await loadCloudState();
-          await loadIntegrations();
-          showToast(authMode === "register" ? "注册成功，账号正在等待管理员审核" : "云端登录成功");
+          await finishCloudAuthentication(data.user, authMode === "register" ? "注册成功，账号正在等待管理员审核" : "云端登录成功");
         } catch (error) {
           showToast(error.message || "账户操作失败", "error");
         } finally {
@@ -1491,6 +1580,53 @@
       elements.authForm.reset();
       updateAccountUI();
       showToast(authMode === "register" ? "注册成功，已登录" : "登录成功");
+    }
+
+    async function handleEmailVerification(event) {
+      event.preventDefault();
+      const token = $("#verificationCode").value.replace(/\s+/g, "");
+      if (!pendingVerificationEmail || !/^\d{6}$/.test(token)) return showToast("请输入邮件中的 6 位验证码", "error");
+      const submit = $("#verificationSubmit");
+      submit.disabled = true;
+      submit.textContent = "正在验证…";
+      try {
+        const response = await fetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: pendingVerificationEmail, token }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "邮箱验证失败");
+        await finishCloudAuthentication(data.user, "邮箱验证成功，账号正在等待管理员审核");
+      } catch (error) {
+        showToast(error.message || "邮箱验证失败", "error");
+        $("#verificationCode").select();
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "验证并登录";
+      }
+    }
+
+    async function resendEmailVerification() {
+      if (!pendingVerificationEmail) return;
+      const button = $("#verificationResend");
+      button.disabled = true;
+      button.textContent = "正在发送…";
+      try {
+        const response = await fetch("/api/auth/resend-signup-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: pendingVerificationEmail }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "验证码发送失败");
+        startResendCountdown();
+        showToast("新的验证码已发送");
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = "重新发送验证码";
+        showToast(error.message || "验证码发送失败", "error");
+      }
     }
 
     async function completeOAuthFromHash() {
@@ -2012,11 +2148,20 @@
     elements.teamModal.addEventListener("click", (event) => { if (event.target === elements.teamModal) closeTeamPanel(); });
     elements.teamContent.addEventListener("submit", handleTeamForm);
     elements.teamContent.addEventListener("click", handleTeamAction);
-    $("#authClose").addEventListener("click", () => elements.authModal.classList.remove("open"));
-    elements.authModal.addEventListener("click", (event) => { if (event.target === elements.authModal) elements.authModal.classList.remove("open"); });
+    $("#authClose").addEventListener("click", closeAuth);
+    elements.authModal.addEventListener("click", (event) => { if (event.target === elements.authModal) closeAuth(); });
     document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
     document.querySelectorAll("[data-social]").forEach((button) => button.addEventListener("click", () => handleSocialAuth(button.dataset.social)));
     elements.authForm.addEventListener("submit", handleAuth);
+    elements.verificationForm.addEventListener("submit", handleEmailVerification);
+    $("#verificationResend").addEventListener("click", resendEmailVerification);
+    $("#verificationBack").addEventListener("click", () => {
+      const email = pendingVerificationEmail;
+      resetEmailVerification();
+      setAuthMode("register");
+      $("#authEmail").value = email;
+      $("#authEmail").focus();
+    });
     elements.habiticaForm.addEventListener("submit", connectHabitica);
     $("#adminClose").addEventListener("click", closeAdminPanel);
     $("#adminModal").addEventListener("click", (event) => { if (event.target === $("#adminModal")) closeAdminPanel(); });

@@ -593,6 +593,15 @@ const server = http.createServer(async (req, res) => {
       const result = await cloud.signIn(req, res, await readJson(req));
       return json(res, 200, result);
     }
+    if (req.method === "POST" && url.pathname === "/api/auth/verify-email") {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      const result = await cloud.verifyEmailOtp(req, res, await readJson(req));
+      return json(res, 200, result);
+    }
+    if (req.method === "POST" && url.pathname === "/api/auth/resend-signup-code") {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      return json(res, 200, await cloud.resendSignupOtp(await readJson(req)));
+    }
     if (req.method === "POST" && url.pathname === "/api/auth/oauth-session") {
       const result = await cloud.acceptOAuthSession(req, res, await readJson(req));
       return json(res, 200, result);
