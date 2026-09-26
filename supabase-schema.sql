@@ -78,6 +78,28 @@ create table if not exists public.checkins (
 
 create index if not exists checkins_user_created_idx on public.checkins(user_id, created_at desc);
 
+create table if not exists public.study_teams (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 30),
+  invite_code text not null unique check (invite_code ~ '^[A-Z0-9]{8}$'),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.study_team_members (
+  team_id uuid not null references public.study_teams(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nickname text not null check (char_length(nickname) between 1 and 20),
+  role text not null default 'member' check (role in ('owner', 'member')),
+  joined_at timestamptz not null default now(),
+  primary key (team_id, user_id),
+  unique (user_id)
+);
+
+create index if not exists study_team_members_team_joined_idx
+  on public.study_team_members(team_id, joined_at);
+
 create table if not exists public.ai_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   provider text not null default 'glm',
@@ -108,6 +130,8 @@ create table if not exists public.usage_counters (
 
 alter table public.profiles enable row level security;
 alter table public.checkins enable row level security;
+alter table public.study_teams enable row level security;
+alter table public.study_team_members enable row level security;
 alter table public.ai_preferences enable row level security;
 alter table public.habitica_connections enable row level security;
 alter table public.usage_counters enable row level security;
@@ -258,10 +282,218 @@ begin
 end;
 $$;
 
+create or replace function public.assert_team_user_approved()
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_status text;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  select approval_status into v_status from public.profiles where id = auth.uid();
+  if v_status <> 'approved' then raise exception 'ACCOUNT_NOT_APPROVED'; end if;
+end;
+$$;
+
+create or replace function public.create_study_team(p_name text, p_nickname text)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_team public.study_teams%rowtype;
+  v_code text;
+  v_attempt integer := 0;
+begin
+  perform public.assert_team_user_approved();
+  if exists (select 1 from public.study_team_members where user_id = v_user) then
+    raise exception 'ALREADY_IN_TEAM';
+  end if;
+  if char_length(trim(coalesce(p_name, ''))) not between 1 and 30 then raise exception 'INVALID_TEAM_NAME'; end if;
+  if char_length(trim(coalesce(p_nickname, ''))) not between 1 and 20 then raise exception 'INVALID_NICKNAME'; end if;
+
+  loop
+    v_code := upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 8));
+    exit when not exists (select 1 from public.study_teams where invite_code = v_code);
+    v_attempt := v_attempt + 1;
+    if v_attempt >= 10 then raise exception 'INVITE_CODE_GENERATION_FAILED'; end if;
+  end loop;
+
+  insert into public.study_teams(name, invite_code, owner_id)
+  values (trim(p_name), v_code, v_user)
+  returning * into v_team;
+
+  insert into public.study_team_members(team_id, user_id, nickname, role)
+  values (v_team.id, v_user, trim(p_nickname), 'owner');
+
+  return jsonb_build_object('id', v_team.id, 'name', v_team.name, 'inviteCode', v_team.invite_code);
+end;
+$$;
+
+create or replace function public.join_study_team(p_invite_code text, p_nickname text)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_team public.study_teams%rowtype;
+begin
+  perform public.assert_team_user_approved();
+  if exists (select 1 from public.study_team_members where user_id = v_user) then
+    raise exception 'ALREADY_IN_TEAM';
+  end if;
+  if char_length(trim(coalesce(p_nickname, ''))) not between 1 and 20 then raise exception 'INVALID_NICKNAME'; end if;
+
+  select * into v_team
+  from public.study_teams
+  where invite_code = upper(trim(coalesce(p_invite_code, '')))
+  for update;
+  if not found then raise exception 'TEAM_NOT_FOUND'; end if;
+  if (select count(*) from public.study_team_members where team_id = v_team.id) >= 12 then
+    raise exception 'TEAM_FULL';
+  end if;
+
+  insert into public.study_team_members(team_id, user_id, nickname, role)
+  values (v_team.id, v_user, trim(p_nickname), 'member');
+  return jsonb_build_object('id', v_team.id, 'name', v_team.name);
+end;
+$$;
+
+create or replace function public.get_my_study_team()
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_team_id uuid;
+  v_result jsonb;
+begin
+  perform public.assert_team_user_approved();
+  select team_id into v_team_id from public.study_team_members where user_id = v_user;
+  if v_team_id is null then return null; end if;
+
+  select jsonb_build_object(
+    'id', t.id,
+    'name', t.name,
+    'inviteCode', t.invite_code,
+    'ownerId', t.owner_id,
+    'currentUserId', v_user,
+    'members', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'userId', m.user_id,
+        'nickname', m.nickname,
+        'role', m.role,
+        'joinedAt', m.joined_at,
+        'xp', coalesce(p.xp, 0),
+        'streak', coalesce(p.streak, 0),
+        'lastDate', p.last_date,
+        'checkinCount', (select count(*) from public.checkins c where c.user_id = m.user_id)
+      ) order by case when m.role = 'owner' then 0 else 1 end, m.joined_at)
+      from public.study_team_members m
+      left join public.profiles p on p.id = m.user_id
+      where m.team_id = t.id
+    ), '[]'::jsonb)
+  ) into v_result
+  from public.study_teams t
+  where t.id = v_team_id;
+  return v_result;
+end;
+$$;
+
+create or replace function public.get_study_team_checkins(p_user_id uuid, p_limit integer default 20)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_own_team uuid;
+  v_target_team uuid;
+  v_limit integer := greatest(1, least(coalesce(p_limit, 20), 50));
+  v_result jsonb;
+begin
+  perform public.assert_team_user_approved();
+  select team_id into v_own_team from public.study_team_members where user_id = v_user;
+  select team_id into v_target_team from public.study_team_members where user_id = p_user_id;
+  if v_own_team is null or v_target_team is null or v_own_team <> v_target_team then
+    raise exception 'TEAM_ACCESS_DENIED';
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', recent.id,
+    'studyText', recent.study_text,
+    'topics', recent.topics,
+    'photoCount', recent.photo_count,
+    'score', recent.score,
+    'title', recent.title,
+    'review', recent.review,
+    'provider', recent.provider,
+    'xp', recent.xp,
+    'createdAt', recent.created_at
+  ) order by recent.created_at desc), '[]'::jsonb)
+  into v_result
+  from (
+    select c.* from public.checkins c
+    where c.user_id = p_user_id
+    order by c.created_at desc
+    limit v_limit
+  ) recent;
+  return v_result;
+end;
+$$;
+
+create or replace function public.leave_study_team()
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_member public.study_team_members%rowtype;
+  v_next_owner uuid;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  select * into v_member from public.study_team_members where user_id = v_user for update;
+  if not found then raise exception 'NOT_IN_TEAM'; end if;
+
+  if v_member.role = 'owner' then
+    select user_id into v_next_owner
+    from public.study_team_members
+    where team_id = v_member.team_id and user_id <> v_user
+    order by joined_at
+    limit 1;
+    if v_next_owner is null then
+      delete from public.study_teams where id = v_member.team_id;
+      return jsonb_build_object('disbanded', true);
+    end if;
+    update public.study_teams set owner_id = v_next_owner, updated_at = now() where id = v_member.team_id;
+    update public.study_team_members set role = 'owner' where team_id = v_member.team_id and user_id = v_next_owner;
+  end if;
+
+  delete from public.study_team_members where team_id = v_member.team_id and user_id = v_user;
+  return jsonb_build_object('disbanded', false, 'newOwnerId', v_next_owner);
+end;
+$$;
+
 revoke all on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) from public;
 grant execute on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) to authenticated;
 revoke all on function public.consume_ai_quota(integer) from public;
 grant execute on function public.consume_ai_quota(integer) to authenticated;
+revoke all on function public.assert_team_user_approved() from public;
+revoke all on function public.create_study_team(text, text) from public;
+revoke all on function public.join_study_team(text, text) from public;
+revoke all on function public.get_my_study_team() from public;
+revoke all on function public.get_study_team_checkins(uuid, integer) from public;
+revoke all on function public.leave_study_team() from public;
+grant execute on function public.create_study_team(text, text) to authenticated;
+grant execute on function public.join_study_team(text, text) to authenticated;
+grant execute on function public.get_my_study_team() to authenticated;
+grant execute on function public.get_study_team_checkins(uuid, integer) to authenticated;
+grant execute on function public.leave_study_team() to authenticated;
 
 grant usage on schema public to authenticated;
 grant select on public.profiles, public.checkins to authenticated;

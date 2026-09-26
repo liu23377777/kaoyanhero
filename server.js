@@ -613,6 +613,31 @@ const server = http.createServer(async (req, res) => {
       const session = await cloud.requireSession(req, res);
       return json(res, 200, await cloud.getUserState(session));
     }
+    if (req.method === "GET" && url.pathname === "/api/team") {
+      const session = await cloud.requireSession(req, res);
+      return json(res, 200, { team: await cloud.getStudyTeam(session) });
+    }
+    if (req.method === "POST" && url.pathname === "/api/team/create") {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      const session = await cloud.requireSession(req, res);
+      await cloud.createStudyTeam(session, await readJson(req));
+      return json(res, 200, { team: await cloud.getStudyTeam(session) });
+    }
+    if (req.method === "POST" && url.pathname === "/api/team/join") {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      const session = await cloud.requireSession(req, res);
+      await cloud.joinStudyTeam(session, await readJson(req));
+      return json(res, 200, { team: await cloud.getStudyTeam(session) });
+    }
+    if (req.method === "POST" && url.pathname === "/api/team/leave") {
+      const session = await cloud.requireSession(req, res);
+      return json(res, 200, { ok: true, result: await cloud.leaveStudyTeam(session) });
+    }
+    if (req.method === "GET" && url.pathname.startsWith("/api/team/members/") && url.pathname.endsWith("/checkins")) {
+      const session = await cloud.requireSession(req, res);
+      const segments = url.pathname.split("/");
+      return json(res, 200, { checkins: await cloud.getStudyTeamCheckins(session, segments[4]) });
+    }
     if (req.method === "GET" && url.pathname === "/api/providers") {
       return json(res, 200, { providers: publicProviders() });
     }

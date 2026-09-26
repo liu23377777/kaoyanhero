@@ -87,6 +87,8 @@
     .top-nav { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,248,.72); }
     .top-nav a { padding: 7px 11px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; transition: .2s; }
     .top-nav a:hover { background: white; color: var(--ink); }
+    .team-button { padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--yellow); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 900; box-shadow: 2px 2px 0 var(--ink); }
+    .team-button:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
     .account-button { min-width: 84px; padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--ink); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
 
     .date-chip {
@@ -538,6 +540,54 @@
     .admin-review-submit { border: 0; background: var(--blue); color: white; }
     .admin-review-submit:disabled { opacity: .6; cursor: wait; }
 
+    .team-modal { position: fixed; inset: 0; z-index: 34; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.7); backdrop-filter: blur(7px); }
+    .team-modal.open { display: flex; }
+    .team-dialog { width: min(760px, 100%); max-height: 88vh; overflow-y: auto; padding: 26px; border: 2px solid var(--ink); border-radius: 25px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
+    .team-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--paper-deep); color: var(--ink); cursor: pointer; }
+    .team-heading { margin-bottom: 18px; padding-right: 42px; }
+    .team-heading h2 { margin: 0 0 5px; font-size: 23px; }
+    .team-heading p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .team-empty-state { min-height: 210px; display: grid; place-items: center; padding: 24px; border: 1px dashed var(--line); border-radius: 18px; background: var(--paper-deep); text-align: center; }
+    .team-empty-state strong { display: block; margin-bottom: 7px; font-size: 16px; }
+    .team-empty-state p { max-width: 430px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .team-empty-icon { width: 62px; height: 62px; display: grid; place-items: center; margin: 0 auto 13px; border: 2px solid var(--ink); border-radius: 20px; background: var(--yellow); box-shadow: 4px 4px 0 var(--ink); font-size: 28px; }
+    .team-primary { padding: 10px 14px; border: 0; border-radius: 11px; background: var(--blue); color: white; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .team-primary:disabled { opacity: .6; cursor: wait; }
+    .team-setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .team-setup-card { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: white; }
+    .team-setup-card:first-child { border-color: rgba(71,107,214,.35); background: linear-gradient(145deg, #f3f6ff, white 65%); }
+    .team-setup-card h3 { margin: 0 0 4px; font-size: 16px; }
+    .team-setup-card > p { margin: 0 0 14px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .team-field { display: grid; gap: 6px; margin-top: 10px; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .team-field input { min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); outline: 0; }
+    .team-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(71,107,214,.1); }
+    .team-setup-card .team-primary { width: 100%; margin-top: 13px; }
+    .team-head-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 15px; padding: 18px; border: 2px solid var(--ink); border-radius: 18px; background: var(--ink); color: white; }
+    .team-head-card h3 { margin: 0 0 5px; font-size: 21px; }
+    .team-head-card p { margin: 0; color: rgba(255,255,255,.62); font-size: 10px; }
+    .invite-card { flex: 0 0 auto; text-align: right; }
+    .invite-card span { display: block; margin-bottom: 5px; color: rgba(255,255,255,.55); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+    .invite-copy { padding: 8px 11px; border: 1px solid rgba(255,255,255,.25); border-radius: 10px; background: rgba(255,255,255,.1); color: var(--yellow); cursor: pointer; font-family: Consolas, monospace; font-size: 15px; font-weight: 900; letter-spacing: .12em; }
+    .team-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 10px; }
+    .team-toolbar strong { font-size: 13px; }
+    .team-leave { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font-size: 10px; font-weight: 800; }
+    .team-members { display: grid; gap: 10px; }
+    .team-member { padding: 13px 14px; border: 1px solid var(--line); border-radius: 15px; background: white; }
+    .team-member-main { display: flex; align-items: center; gap: 11px; }
+    .team-avatar { width: 38px; height: 38px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; background: #edf0fb; color: var(--blue); font-weight: 900; }
+    .team-member-copy { min-width: 0; flex: 1; }
+    .team-member-copy strong { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .team-role { padding: 2px 6px; border-radius: 999px; background: rgba(255,200,87,.28); color: #9a6410; font-size: 8px; }
+    .team-member-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .team-record-button { padding: 7px 10px; border: 1.5px solid var(--ink); border-radius: 999px; background: white; color: var(--ink); cursor: pointer; font-size: 10px; font-weight: 900; }
+    .team-records { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+    .team-records[hidden] { display: none; }
+    .team-checkin { padding: 11px 12px; border-radius: 12px; background: var(--paper-deep); }
+    .team-checkin-head { display: flex; justify-content: space-between; gap: 9px; margin-bottom: 6px; font-size: 11px; }
+    .team-checkin-head span { color: var(--muted); font-size: 9px; }
+    .team-checkin p { margin: 0; color: #485168; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }
+    .team-checkin-summary { margin-top: 5px !important; color: var(--muted) !important; }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -584,6 +634,14 @@
       .preview-grid { grid-template-columns: repeat(2, 1fr); }
       .review-choice-grid { grid-template-columns: 1fr; }
       .admin-user-actions { width: 100%; justify-content: flex-start; }
+      .topbar-actions { gap: 7px; }
+      .team-button, .account-button { padding: 8px 10px; font-size: 11px; }
+      .team-dialog { padding: 22px 17px; box-shadow: 5px 5px 0 var(--yellow); }
+      .team-setup-grid { grid-template-columns: 1fr; }
+      .team-head-card { flex-direction: column; }
+      .invite-card { text-align: left; }
+      .team-member-main { align-items: flex-start; flex-wrap: wrap; }
+      .team-record-button { margin-left: 49px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -601,6 +659,7 @@
       <div class="topbar-actions">
         <nav class="top-nav" aria-label="页面导航"><a href="#homeSection">首页</a><a href="#checkinSection">打卡</a><a href="#historySection">战绩</a></nav>
         <div class="date-chip" id="todayLabel">今天也要稳稳推进</div>
+        <button class="team-button" id="teamButton" type="button">👥 队友</button>
         <button class="account-button" id="accountButton" type="button">登录 / 注册</button>
       </div>
     </header>
@@ -792,6 +851,19 @@
     </div>
   </div>
 
+  <div class="team-modal" id="teamModal" role="dialog" aria-modal="true" aria-labelledby="teamTitle">
+    <div class="team-dialog">
+      <button class="team-close" id="teamClose" type="button" aria-label="关闭">×</button>
+      <div class="team-heading">
+        <h2 id="teamTitle">队友模式</h2>
+        <p>和固定战友组成学习小队，互相查看打卡记录、监督进度。队友只能查看，不能修改你的内容。</p>
+      </div>
+      <div id="teamContent">
+        <div class="team-empty-state"><div><div class="team-empty-icon">👥</div><strong>正在读取队伍信息…</strong></div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="admin-modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
     <div class="admin-dialog">
       <button class="admin-close" id="adminClose" type="button" aria-label="关闭">×</button>
@@ -855,6 +927,7 @@
     let adminAuthenticated = false;
     let adminUsersById = new Map();
     let adminReviewTargetId = "";
+    let studyTeam = null;
 
     const $ = (selector) => document.querySelector(selector);
     const elements = {
@@ -866,6 +939,7 @@
       toast: $("#toast"), emptyReview: $("#emptyReview"), resultReview: $("#resultReview"), reviewBody: $("#reviewBody"),
       rewardStrip: $("#rewardStrip"), modelBadge: $("#modelBadge"), historyList: $("#historyList"),
       accountButton: $("#accountButton"), authModal: $("#authModal"), authForm: $("#authForm"),
+      teamModal: $("#teamModal"), teamContent: $("#teamContent"),
       habiticaSetup: $("#habiticaSetup"), habiticaForm: $("#habiticaForm"), habiticaConnect: $("#habiticaConnect")
     };
 
@@ -1334,6 +1408,7 @@
           if (appConfig.cloudMode) {
             await fetch("/api/auth/logout", { method: "POST" });
             currentUser = null;
+            studyTeam = null;
             accountApproval = { status: "approved", comment: "", reviewedAt: null };
             accountApproved = true;
             setApprovalBanner(null);
@@ -1463,6 +1538,193 @@
         showToast(error.message || "云端配置检查失败", "error");
       }
       updateAccountUI();
+    }
+
+    function teamEmptyHtml(icon, title, message, action = "") {
+      return `<div class="team-empty-state"><div><div class="team-empty-icon">${icon}</div><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p>${action}</div></div>`;
+    }
+
+    function defaultTeamNickname() {
+      return String(currentUser?.email || "勇者").split("@")[0].slice(0, 20) || "勇者";
+    }
+
+    function renderTeamSetup() {
+      const nickname = escapeHtml(defaultTeamNickname());
+      elements.teamContent.innerHTML = `
+        <div class="team-setup-grid">
+          <form class="team-setup-card" data-team-form="create">
+            <h3>创建一支队伍</h3>
+            <p>你会成为队长，并获得一个可以分享给队友的 8 位邀请码。</p>
+            <label class="team-field">队伍名称<input name="name" maxlength="30" required placeholder="例如：计算机上岸小队"></label>
+            <label class="team-field">我的队内昵称<input name="nickname" maxlength="20" required value="${nickname}"></label>
+            <button class="team-primary" type="submit">创建队伍</button>
+          </form>
+          <form class="team-setup-card" data-team-form="join">
+            <h3>加入队友</h3>
+            <p>向队长获取邀请码。每个账号同一时间只能加入一支队伍。</p>
+            <label class="team-field">8 位邀请码<input name="inviteCode" maxlength="8" required autocomplete="off" placeholder="例如：A1B2C3D4"></label>
+            <label class="team-field">我的队内昵称<input name="nickname" maxlength="20" required value="${nickname}"></label>
+            <button class="team-primary" type="submit">加入队伍</button>
+          </form>
+        </div>`;
+    }
+
+    function renderStudyTeam(team) {
+      studyTeam = team;
+      if (!team) return renderTeamSetup();
+      const members = Array.isArray(team.members) ? team.members : [];
+      elements.teamContent.innerHTML = `
+        <div class="team-head-card">
+          <div><h3>${escapeHtml(team.name || "学习小队")}</h3><p>${members.length} / 12 位勇者 · 队内记录只读共享</p></div>
+          <div class="invite-card"><span>入队邀请码</span><button class="invite-copy" type="button" data-team-action="copy" data-code="${escapeHtml(team.inviteCode || "")}">${escapeHtml(team.inviteCode || "--------")}</button></div>
+        </div>
+        <div class="team-toolbar"><strong>队友进度</strong><button class="team-leave" type="button" data-team-action="leave">退出队伍</button></div>
+        <div class="team-members">${members.map((member) => {
+          const self = member.userId === team.currentUserId;
+          const initial = String(member.nickname || "勇").slice(0, 1);
+          return `<article class="team-member" data-team-user-id="${escapeHtml(member.userId)}">
+            <div class="team-member-main">
+              <div class="team-avatar">${escapeHtml(initial)}</div>
+              <div class="team-member-copy"><strong>${escapeHtml(member.nickname || "队友")}${member.role === "owner" ? '<span class="team-role">队长</span>' : ""}${self ? '<span class="team-role">我</span>' : ""}</strong><small>累计打卡 ${Number(member.checkinCount) || 0} 次 · 连胜 ${Number(member.streak) || 0} 天 · ${Number(member.xp) || 0} XP</small></div>
+              <button class="team-record-button" type="button" data-team-action="records">${self ? "查看我的记录" : "查看打卡记录"}</button>
+            </div>
+            <div class="team-records" hidden></div>
+          </article>`;
+        }).join("")}</div>`;
+    }
+
+    function renderTeamCheckin(item) {
+      const review = item.review || {};
+      const summary = String(review.summary || "").trim();
+      return `<div class="team-checkin">
+        <div class="team-checkin-head"><strong>${escapeHtml(item.title || "学习打卡")} · ${Number(item.score) || 0} 分</strong><span>${escapeHtml(formatCloudDate(item.createdAt))}</span></div>
+        <p>${escapeHtml(item.studyText || "（本次没有填写文字记录）")}</p>
+        ${summary ? `<p class="team-checkin-summary">AI 复盘：${escapeHtml(summary)}</p>` : ""}
+      </div>`;
+    }
+
+    async function loadStudyTeam() {
+      elements.teamContent.innerHTML = teamEmptyHtml("👥", "正在集合队友…", "正在安全地读取队伍与打卡权限。");
+      try {
+        const response = await fetch("/api/team");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取队伍信息");
+        renderStudyTeam(data.team || null);
+      } catch (error) {
+        studyTeam = null;
+        elements.teamContent.innerHTML = teamEmptyHtml("!", "队友模式暂时不可用", error.message || "加载失败");
+      }
+    }
+
+    async function openTeamPanel() {
+      elements.teamModal.classList.add("open");
+      if (!appConfig.cloudMode) {
+        elements.teamContent.innerHTML = teamEmptyHtml("☁", "需要云端账户", "队友模式依赖 Supabase 进行身份验证和权限隔离，本机演示模式暂不开放。");
+        return;
+      }
+      if (!currentUser) {
+        elements.teamContent.innerHTML = teamEmptyHtml("↗", "请先登录", "登录后才能创建或加入队伍。", '<button class="team-primary" type="button" data-team-action="login" style="margin-top:14px">去登录</button>');
+        return;
+      }
+      if (!accountApproved) {
+        const message = accountApproval.status === "rejected" ? "当前账号审核未通过，暂时不能使用队友模式。" : "账号通过管理员审核后即可创建或加入队伍。";
+        elements.teamContent.innerHTML = teamEmptyHtml("⏳", "等待账号审核", message);
+        return;
+      }
+      await loadStudyTeam();
+    }
+
+    function closeTeamPanel() {
+      elements.teamModal.classList.remove("open");
+    }
+
+    async function handleTeamForm(event) {
+      const form = event.target.closest("[data-team-form]");
+      if (!form) return;
+      event.preventDefault();
+      const action = form.dataset.teamForm;
+      const submit = form.querySelector("button[type=submit]");
+      const values = Object.fromEntries(new FormData(form));
+      submit.disabled = true;
+      submit.textContent = action === "create" ? "正在创建…" : "正在加入…";
+      try {
+        const response = await fetch(`/api/team/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "队伍操作失败");
+        renderStudyTeam(data.team);
+        showToast(action === "create" ? "队伍创建成功，把邀请码发给战友吧" : "已加入队伍");
+      } catch (error) {
+        showToast(error.message || "队伍操作失败", "error");
+        submit.disabled = false;
+        submit.textContent = action === "create" ? "创建队伍" : "加入队伍";
+      }
+    }
+
+    async function toggleTeamRecords(member, button) {
+      const panel = member.querySelector(".team-records");
+      if (!panel.hidden) {
+        panel.hidden = true;
+        button.textContent = member.dataset.teamUserId === studyTeam?.currentUserId ? "查看我的记录" : "查看打卡记录";
+        return;
+      }
+      panel.hidden = false;
+      panel.innerHTML = '<div class="admin-empty">正在加载打卡记录…</div>';
+      button.textContent = "收起记录";
+      try {
+        const response = await fetch(`/api/team/members/${encodeURIComponent(member.dataset.teamUserId)}/checkins`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取打卡记录");
+        const checkins = Array.isArray(data.checkins) ? data.checkins : [];
+        panel.innerHTML = checkins.length ? checkins.map(renderTeamCheckin).join("") : '<div class="admin-empty">这位队友还没有打卡记录</div>';
+      } catch (error) {
+        panel.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "加载失败")}</div>`;
+      }
+    }
+
+    async function handleTeamAction(event) {
+      const button = event.target.closest("[data-team-action]");
+      if (!button) return;
+      const action = button.dataset.teamAction;
+      if (action === "login") {
+        closeTeamPanel();
+        await openAuth();
+        return;
+      }
+      if (action === "copy") {
+        try {
+          await navigator.clipboard.writeText(button.dataset.code || "");
+          showToast("邀请码已复制");
+        } catch {
+          showToast(`邀请码：${button.dataset.code || ""}`);
+        }
+        return;
+      }
+      if (action === "records") {
+        const member = button.closest("[data-team-user-id]");
+        if (member) await toggleTeamRecords(member, button);
+        return;
+      }
+      if (action === "leave") {
+        const isOwner = studyTeam?.ownerId === studyTeam?.currentUserId;
+        const warning = isOwner ? "退出后，队长会自动转交给最早加入的队友；如果只有你一人，队伍将解散。确定退出吗？" : "确定退出当前队伍吗？";
+        if (!window.confirm(warning)) return;
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/team/leave", { method: "POST" });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "退出队伍失败");
+          studyTeam = null;
+          renderTeamSetup();
+          showToast(data.result?.disbanded ? "已退出并解散队伍" : "已退出队伍");
+        } catch (error) {
+          button.disabled = false;
+          showToast(error.message || "退出队伍失败", "error");
+        }
+      }
     }
 
     function openAdminPanel() {
@@ -1732,6 +1994,11 @@
     ["dragleave", "drop"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.remove("dragover"); }));
     elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
     elements.accountButton.addEventListener("click", openAuth);
+    $("#teamButton").addEventListener("click", openTeamPanel);
+    $("#teamClose").addEventListener("click", closeTeamPanel);
+    elements.teamModal.addEventListener("click", (event) => { if (event.target === elements.teamModal) closeTeamPanel(); });
+    elements.teamContent.addEventListener("submit", handleTeamForm);
+    elements.teamContent.addEventListener("click", handleTeamAction);
     $("#authClose").addEventListener("click", () => elements.authModal.classList.remove("open"));
     elements.authModal.addEventListener("click", (event) => { if (event.target === elements.authModal) elements.authModal.classList.remove("open"); });
     document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));

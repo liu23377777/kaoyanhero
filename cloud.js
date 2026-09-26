@@ -348,6 +348,85 @@ async function recordCheckin(session, payload) {
   return data;
 }
 
+function cleanTeamText(value, label, maxLength) {
+  const text = String(value || "").trim();
+  if (!text || text.length > maxLength) {
+    throw Object.assign(new Error(`${label}应为 1 到 ${maxLength} 个字符`), { status: 400 });
+  }
+  return text;
+}
+
+function cleanInviteCode(value) {
+  const code = String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!/^[A-Z0-9]{8}$/.test(code)) {
+    throw Object.assign(new Error("邀请码应为 8 位字母或数字"), { status: 400 });
+  }
+  return code;
+}
+
+function translateTeamError(error) {
+  const message = String(error?.message || "");
+  if (/could not find the function|schema cache|study_team/i.test(message) && /function|relation|table/i.test(message)) {
+    return Object.assign(new Error("队友模式数据库尚未升级，请先在 Supabase 执行最新的 supabase-schema.sql"), { status: 503 });
+  }
+  const known = [
+    ["ACCOUNT_NOT_APPROVED", "账号审核通过后才能使用队友模式", 403],
+    ["ALREADY_IN_TEAM", "你已经加入了一个队伍", 409],
+    ["TEAM_NOT_FOUND", "没有找到该邀请码对应的队伍", 404],
+    ["TEAM_FULL", "这个队伍已满（最多 12 人）", 409],
+    ["TEAM_ACCESS_DENIED", "你没有权限查看该队员的打卡记录", 403],
+    ["NOT_IN_TEAM", "你当前没有加入队伍", 409],
+    ["INVALID_TEAM_NAME", "队伍名称格式不正确", 400],
+    ["INVALID_NICKNAME", "队内昵称格式不正确", 400],
+  ];
+  for (const [code, friendly, status] of known) {
+    if (message.includes(code)) return Object.assign(new Error(friendly), { status });
+  }
+  return error;
+}
+
+async function teamRpc(session, functionName, body = {}) {
+  try {
+    const { data } = await supabaseRequest(`/rest/v1/rpc/${functionName}`, {
+      method: "POST",
+      accessToken: session.accessToken,
+      body,
+    });
+    return data;
+  } catch (error) {
+    throw translateTeamError(error);
+  }
+}
+
+async function getStudyTeam(session) {
+  return teamRpc(session, "get_my_study_team");
+}
+
+async function createStudyTeam(session, payload) {
+  return teamRpc(session, "create_study_team", {
+    p_name: cleanTeamText(payload?.name, "队伍名称", 30),
+    p_nickname: cleanTeamText(payload?.nickname, "队内昵称", 20),
+  });
+}
+
+async function joinStudyTeam(session, payload) {
+  return teamRpc(session, "join_study_team", {
+    p_invite_code: cleanInviteCode(payload?.inviteCode),
+    p_nickname: cleanTeamText(payload?.nickname, "队内昵称", 20),
+  });
+}
+
+async function leaveStudyTeam(session) {
+  return teamRpc(session, "leave_study_team");
+}
+
+async function getStudyTeamCheckins(session, userId, limit = 20) {
+  const id = cleanUserId(userId);
+  const safeLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+  const data = await teamRpc(session, "get_study_team_checkins", { p_user_id: id, p_limit: safeLimit });
+  return Array.isArray(data) ? data : [];
+}
+
 function encryptionKey() {
   const secret = String(process.env.APP_ENCRYPTION_KEY || "");
   if (secret.length < 32) throw Object.assign(new Error("APP_ENCRYPTION_KEY 至少需要 32 个字符"), { status: 503 });
@@ -592,6 +671,11 @@ module.exports = {
   savePreferences,
   assertWithinDailyLimit,
   recordCheckin,
+  getStudyTeam,
+  createStudyTeam,
+  joinStudyTeam,
+  leaveStudyTeam,
+  getStudyTeamCheckins,
   saveHabiticaConnection,
   getHabiticaConnection,
   googleOAuthUrl,
@@ -603,5 +687,5 @@ module.exports = {
   adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError },
 };
