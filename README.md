@@ -51,6 +51,8 @@ DAILY_AI_REQUEST_LIMIT=10
 
 Supabase 默认限制验证码的发送频率；网页也会显示 60 秒重新发送倒计时。验证码由 Supabase 校验，验证成功后会建立 HttpOnly 登录会话，随后账号仍需经过管理员审核才能提交打卡。
 
+Supabase 内置邮件服务仅适合测试，并且默认只能向项目组织成员邮箱发送。要让普通访客（包括 QQ 邮箱、Gmail 等）都能收到验证码，必须在 Authentication > Emails > SMTP Settings 配置自有 SMTP（例如 Resend、Amazon SES、Postmark、SendGrid 或 Brevo）。
+
 如需 Google 登录，在 Supabase Authentication > Providers 启用 Google，将线上域名加入 Redirect URLs，然后设置：
 
 ```env
