@@ -67,3 +67,16 @@ test("resends a signup confirmation as an email OTP", async (t) => {
   assert.match(request.url, /\/auth\/v1\/resend$/);
   assert.deepEqual(JSON.parse(request.options.body), { type: "signup", email: "hero@example.com" });
 });
+
+test("translates Supabase duplicate registration errors", async (t) => {
+  withSupabaseMock(t, async () => new Response(JSON.stringify({ message: "User already registered" }), {
+    status: 422,
+    headers: { "Content-Type": "application/json" },
+  }));
+  const response = { setHeader() {} };
+
+  await assert.rejects(
+    cloud.signUp({ headers: {} }, response, { email: "hero@example.com", password: "secret12" }),
+    (error) => error.status === 409 && error.message === "该邮箱已注册，请直接登录",
+  );
+});

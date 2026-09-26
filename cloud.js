@@ -157,7 +157,15 @@ function cleanReviewDecision(payload) {
 async function signUp(req, res, payload) {
   const email = cleanEmail(payload?.email);
   const password = cleanPassword(payload?.password);
-  const { data } = await supabaseRequest("/auth/v1/signup", { method: "POST", body: { email, password } });
+  let data;
+  try {
+    ({ data } = await supabaseRequest("/auth/v1/signup", { method: "POST", body: { email, password } }));
+  } catch (error) {
+    if (/user already registered/i.test(String(error.message || ""))) {
+      throw Object.assign(new Error("该邮箱已注册，请直接登录"), { status: 409 });
+    }
+    throw error;
+  }
   if (data?.access_token && data?.refresh_token) setSessionCookies(req, res, data);
   return {
     user: data?.user ? { id: data.user.id, email: data.user.email } : null,
