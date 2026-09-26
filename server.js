@@ -236,15 +236,46 @@ function safeJsonFromModel(raw) {
   };
 }
 
-function calculateRewards(text, photoCount, score) {
-  const subjects = ["数学", "英语", "政治", "专业课"].filter((subject) => text.includes(subject)).length;
-  const detailBonus = Math.min(30, Math.floor(text.trim().length / 20) * 5);
-  const scoreBonus = Math.max(0, Math.floor((score - 60) / 10) * 5);
-  const photoBonus = photoCount ? 35 + Math.min(15, (photoCount - 1) * 5) : 0;
-  return {
-    xp: 40 + subjects * 15 + detailBonus + photoBonus + scoreBonus,
-    coin: 10 + subjects * 3 + (photoCount ? 12 + Math.min(6, photoCount - 1) : 0) + (score >= 85 ? 5 : 0),
-  };
+function calculateRewards({ text = "", photoCount = 0, score = 60, selectedTopics = [], review = {} } = {}) {
+  const safeText = String(text || "").trim();
+  const safePhotos = Math.max(0, Math.min(6, Number(photoCount) || 0));
+  const safeScore = Math.max(0, Math.min(100, Number(score) || 60));
+  const topics = [...new Set([
+    ...(Array.isArray(selectedTopics) ? selectedTopics : []),
+    ...(Array.isArray(review.discoveredTopics) ? review.discoveredTopics : []),
+  ].map((item) => String(item || "").trim()).filter(Boolean))].slice(0, 10);
+  const evidenceCount = Math.min(5, Array.isArray(review.detectedEvidence) ? review.detectedEvidence.length : 0);
+
+  const detailPoints = Math.min(34, Math.round(Math.sqrt(safeText.length) * 2.25));
+  const quantityPattern = /(\d+(?:\.\d+)?)\s*(小时|分钟|题|道|页|篇|章|节|套|遍|次|个单词|单词)/g;
+  let quantityPoints = 0;
+  let quantityMatches = 0;
+  for (const match of safeText.matchAll(quantityPattern)) {
+    const amount = Math.max(0, Number(match[1]) || 0);
+    const unit = match[2];
+    quantityMatches += 1;
+    if (unit === "小时") quantityPoints += Math.min(24, amount * 7);
+    else if (unit === "分钟") quantityPoints += Math.min(18, amount / 10);
+    else if (unit === "套" || unit === "章" || unit === "篇") quantityPoints += Math.min(16, amount * 4);
+    else if (unit === "个单词" || unit === "单词") quantityPoints += Math.min(14, amount / 18);
+    else quantityPoints += Math.min(16, Math.sqrt(amount) * 2.1);
+  }
+  quantityPoints = Math.min(38, Math.round(quantityPoints));
+  const photoPoints = Math.min(26, safePhotos * 7);
+  const topicPoints = Math.min(20, topics.length * 4);
+  const evidencePoints = Math.min(20, evidenceCount * 4);
+  const credibilityFactor = ({ high: 1, medium: 0.9, low: 0.72 })[review.credibility] || 0.86;
+  const workload = Math.round((14 + detailPoints + quantityPoints + photoPoints + topicPoints + evidencePoints) * credibilityFactor);
+  const qualityPoints = Math.max(0, Math.round((safeScore - 55) * 0.42));
+  const xp = Math.max(35, Math.min(220, Math.round((28 + workload + qualityPoints) / 5) * 5));
+  const coin = Math.max(8, Math.min(50, Math.round(6 + workload * 0.24 + qualityPoints * 0.12)));
+  const basis = [
+    `工作量 ${workload} 点`,
+    quantityMatches ? `识别到 ${quantityMatches} 项量化投入` : `记录详实度 ${detailPoints} 点`,
+    safePhotos ? `${safePhotos} 份学习凭证` : "无图片凭证",
+    topics.length ? `${topics.length} 个学习主题` : "未标注主题",
+  ];
+  return { xp, coin, workload, basis };
 }
 
 function habiticaConfig() {
@@ -521,7 +552,7 @@ async function evaluate(payload, cloudSession = null) {
       throw Object.assign(new Error("AI 返回的评价格式不完整，系统已尝试自动修复但仍未成功。请切换“快速”模式或提高输出上限后重试。"), { status: 502 });
     }
   }
-  const rewards = calculateRewards(text, images.length, review.score);
+  const rewards = calculateRewards({ text, photoCount: images.length, score: review.score, selectedTopics, review });
   const userHabitica = cloudSession ? await cloud.getHabiticaConnection(cloudSession) : habiticaConfig();
   const habitica = payload.syncHabitica === false
     ? { configured: Boolean(userHabitica?.taskId), synced: false, message: "本次未同步 Habitica" }
@@ -651,6 +682,16 @@ const server = http.createServer(async (req, res) => {
       const segments = url.pathname.split("/");
       return json(res, 200, { checkins: await cloud.getStudyTeamCheckins(session, segments[4]) });
     }
+    if (req.method === "GET" && url.pathname === "/api/rewards") {
+      const session = await cloud.requireSession(req, res);
+      return json(res, 200, await cloud.getAvailableRewards(session));
+    }
+    if (req.method === "POST" && url.pathname.startsWith("/api/rewards/") && url.pathname.endsWith("/redeem")) {
+      if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
+      const session = await cloud.requireSession(req, res);
+      const segments = url.pathname.split("/");
+      return json(res, 200, await cloud.redeemReward(session, segments[3]));
+    }
     if (req.method === "GET" && url.pathname === "/api/providers") {
       return json(res, 200, { providers: publicProviders() });
     }
@@ -712,6 +753,22 @@ const server = http.createServer(async (req, res) => {
       const checkins = await cloud.adminListUserCheckins(userId);
       return json(res, 200, { checkins });
     }
+    if (req.method === "GET" && url.pathname === "/api/admin/rewards") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { rewards: await cloud.adminListRewards() });
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/rewards") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { reward: await cloud.adminCreateReward(await readJson(req)) });
+    }
+    if (req.method === "GET" && url.pathname === "/api/admin/reward-groups") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { groups: await cloud.adminListRewardGroups() });
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/reward-groups") {
+      cloud.requireAdmin(req);
+      return json(res, 200, { group: await cloud.adminCreateRewardGroup(await readJson(req)) });
+    }
     if (req.method === "POST" && url.pathname === "/api/evaluate") {
       if (rateLimited(req)) return json(res, 429, { error: "请求太频繁，请稍后再试" });
       const cloudSession = cloud.configured() ? await cloud.requireSession(req, res) : null;
@@ -733,4 +790,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { safeJsonFromModel };
+module.exports = { safeJsonFromModel, calculateRewards };

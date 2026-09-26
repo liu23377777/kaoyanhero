@@ -300,7 +300,7 @@ async function getUserState(session) {
   const userId = encodeURIComponent(session.user.id);
   const [profiles, checkins, preferences] = await Promise.all([
     requestOwnProfile(userId, session.accessToken),
-    supabaseRequest(restPath("checkins", `user_id=eq.${userId}&select=id,score,title,provider,xp,created_at&order=created_at.desc&limit=20`), { accessToken: session.accessToken }),
+    supabaseRequest(restPath("checkins", `user_id=eq.${userId}&select=id,study_text,topics,photo_count,score,title,review,provider,model,xp,coin,created_at&order=created_at.desc&limit=20`), { accessToken: session.accessToken }),
     supabaseRequest(restPath("ai_preferences", `user_id=eq.${userId}&select=provider,reasoning_mode,detail_level,max_tokens,temperature&limit=1`), { accessToken: session.accessToken }),
   ]);
   const profile = profiles.data?.[0] || { xp: 0, coin: 0, streak: 0, last_date: null, approval_status: "pending" };
@@ -318,10 +318,16 @@ async function getUserState(session) {
     },
     history: (checkins.data || []).map((item) => ({
       id: item.id,
+      studyText: item.study_text || "",
+      topics: Array.isArray(item.topics) ? item.topics : [],
+      photoCount: Number(item.photo_count || 0),
       score: Number(item.score || 0),
       title: item.title || "学习打卡",
+      review: item.review || null,
       provider: item.provider || "AI",
+      model: item.model || "",
       xp: Number(item.xp || 0),
+      coin: Number(item.coin || 0),
       createdAt: item.created_at,
     })),
     preferences: preferences.data?.[0] || null,
@@ -367,10 +373,11 @@ async function assertWithinDailyLimit(session) {
 }
 
 async function recordCheckin(session, payload) {
-  const { data } = await supabaseRequest("/rest/v1/rpc/record_checkin", {
+  const { data } = await supabaseRequest("/rest/v1/rpc/record_checkin_server", {
     method: "POST",
-    accessToken: session.accessToken,
+    useServiceRole: true,
     body: {
+      p_user_id: session.user.id,
       p_text: payload.text,
       p_topics: payload.topics,
       p_photo_count: payload.photoCount,
@@ -462,6 +469,47 @@ async function getStudyTeamCheckins(session, userId, limit = 20) {
   const safeLimit = Math.max(1, Math.min(50, Number(limit) || 20));
   const data = await teamRpc(session, "get_study_team_checkins", { p_user_id: id, p_limit: safeLimit });
   return Array.isArray(data) ? data : [];
+}
+
+function translateRewardError(error) {
+  const message = String(error?.message || "");
+  if (/could not find the function|schema cache|reward_catalog|reward_redemptions/i.test(message)) {
+    return Object.assign(new Error("奖励中心数据库尚未升级，请先在 Supabase 执行最新的 supabase-schema.sql"), { status: 503 });
+  }
+  const known = [
+    ["ACCOUNT_NOT_APPROVED", "账号审核通过后才能兑换奖励", 403],
+    ["REWARD_NOT_FOUND", "没有找到这个奖励", 404],
+    ["REWARD_UNAVAILABLE", "这个奖励当前不可兑换", 409],
+    ["REWARD_NOT_FOR_USER", "这个奖励没有发布给当前账号", 403],
+    ["REWARD_LIMIT_REACHED", "你已达到该奖励的兑换次数上限", 409],
+    ["REWARD_OUT_OF_STOCK", "这个奖励已经兑完了", 409],
+    ["INSUFFICIENT_COINS", "勇者金币不足，继续打卡积累吧", 409],
+  ];
+  for (const [code, friendly, status] of known) {
+    if (message.includes(code)) return Object.assign(new Error(friendly), { status });
+  }
+  return error;
+}
+
+async function rewardRpc(session, functionName, body = {}) {
+  try {
+    const { data } = await supabaseRequest(`/rest/v1/rpc/${functionName}`, {
+      method: "POST",
+      accessToken: session.accessToken,
+      body,
+    });
+    return data;
+  } catch (error) {
+    throw translateRewardError(error);
+  }
+}
+
+async function getAvailableRewards(session) {
+  return rewardRpc(session, "get_available_rewards");
+}
+
+async function redeemReward(session, rewardId) {
+  return rewardRpc(session, "redeem_reward", { p_reward_id: cleanUserId(rewardId) });
 }
 
 function encryptionKey() {
@@ -702,6 +750,128 @@ async function adminListUserCheckins(userId, limit = 50) {
   }));
 }
 
+function cleanShortText(value, label, maxLength, { required = true } = {}) {
+  const text = String(value || "").trim();
+  if ((required && !text) || text.length > maxLength) {
+    throw Object.assign(new Error(`${label}${required ? `应为 1 到 ${maxLength} 个字符` : `不能超过 ${maxLength} 个字符`}`), { status: 400 });
+  }
+  return text;
+}
+
+function parseRecipientIds(value) {
+  const parts = Array.isArray(value) ? value : String(value || "").split(/[\s,;，；]+/);
+  const ids = [...new Set(parts.map((item) => String(item || "").trim()).filter(Boolean))];
+  for (const id of ids) cleanUserId(id);
+  return ids;
+}
+
+function cleanWholeNumber(value, label, { min = 0, max = 999999, nullable = false } = {}) {
+  if (nullable && (value === "" || value === null || value === undefined)) return null;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) {
+    throw Object.assign(new Error(`${label}应为 ${min} 到 ${max} 的整数`), { status: 400 });
+  }
+  return number;
+}
+
+async function adminListRewardGroups() {
+  const [{ data: groups }, { data: members }, authUsers] = await Promise.all([
+    supabaseRequest(restPath("reward_groups", "select=id,name,created_at&order=created_at.desc"), { useServiceRole: true }),
+    supabaseRequest(restPath("reward_group_members", "select=group_id,user_id"), { useServiceRole: true }),
+    adminListAuthUsers(),
+  ]);
+  const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  return (groups || []).map((group) => ({
+    id: group.id,
+    name: group.name,
+    createdAt: group.created_at,
+    members: (members || []).filter((member) => member.group_id === group.id).map((member) => ({
+      userId: member.user_id,
+      email: emailById.get(member.user_id) || "(未知邮箱)",
+    })),
+  }));
+}
+
+async function adminCreateRewardGroup(payload) {
+  const name = cleanShortText(payload?.name, "分组名称", 40);
+  const memberIds = parseRecipientIds(payload?.memberIds);
+  if (!memberIds.length) throw Object.assign(new Error("请至少选择一位分组成员"), { status: 400 });
+  const { data } = await supabaseRequest(restPath("reward_groups"), {
+    method: "POST",
+    useServiceRole: true,
+    prefer: "return=representation",
+    body: { name },
+  });
+  const group = data?.[0];
+  if (!group?.id) throw Object.assign(new Error("奖励分组创建失败"), { status: 502 });
+  await supabaseRequest(restPath("reward_group_members"), {
+    method: "POST",
+    useServiceRole: true,
+    prefer: "return=minimal",
+    body: memberIds.map((userId) => ({ group_id: group.id, user_id: userId })),
+  });
+  return { id: group.id, name, memberIds };
+}
+
+async function adminListRewards() {
+  const [{ data: rewards }, { data: groups }, { data: redemptions }, authUsers] = await Promise.all([
+    supabaseRequest(restPath("reward_catalog", "select=*&order=created_at.desc&limit=200"), { useServiceRole: true }),
+    supabaseRequest(restPath("reward_groups", "select=id,name"), { useServiceRole: true }),
+    supabaseRequest(restPath("reward_redemptions", "select=reward_id,user_id,status,created_at&order=created_at.desc&limit=5000"), { useServiceRole: true }),
+    adminListAuthUsers(),
+  ]);
+  const groupById = new Map((groups || []).map((group) => [group.id, group.name]));
+  const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  return (rewards || []).map((reward) => ({
+    id: reward.id,
+    title: reward.title,
+    description: reward.description || "",
+    coinCost: Number(reward.coin_cost || 0),
+    stock: reward.stock === null ? null : Number(reward.stock),
+    perUserLimit: Number(reward.per_user_limit || 1),
+    audienceMode: reward.audience_mode,
+    targetUserIds: Array.isArray(reward.target_user_ids) ? reward.target_user_ids : [],
+    groupId: reward.group_id,
+    groupName: groupById.get(reward.group_id) || "",
+    active: Boolean(reward.active),
+    redeemedTotal: (redemptions || []).filter((item) => item.reward_id === reward.id && item.status !== "cancelled").length,
+    redemptions: (redemptions || []).filter((item) => item.reward_id === reward.id && item.status !== "cancelled").slice(0, 20).map((item) => ({
+      userId: item.user_id,
+      email: emailById.get(item.user_id) || "(未知邮箱)",
+      status: item.status,
+      createdAt: item.created_at,
+    })),
+    createdAt: reward.created_at,
+  }));
+}
+
+async function adminCreateReward(payload) {
+  const audienceMode = ["all", "users", "group"].includes(payload?.audienceMode) ? payload.audienceMode : "all";
+  const targetUserIds = audienceMode === "users" ? parseRecipientIds(payload?.targetUserIds) : [];
+  const groupId = audienceMode === "group" ? cleanUserId(payload?.groupId) : null;
+  if (audienceMode === "users" && !targetUserIds.length) {
+    throw Object.assign(new Error("定向奖励至少需要一位用户 ID"), { status: 400 });
+  }
+  const row = {
+    title: cleanShortText(payload?.title, "奖励名称", 60),
+    description: cleanShortText(payload?.description, "奖励说明", 500, { required: false }),
+    coin_cost: cleanWholeNumber(payload?.coinCost, "兑换金币", { min: 0, max: 999999 }),
+    stock: cleanWholeNumber(payload?.stock, "总库存", { min: 1, max: 999999, nullable: true }),
+    per_user_limit: cleanWholeNumber(payload?.perUserLimit, "每人限兑次数", { min: 1, max: 999 }),
+    audience_mode: audienceMode,
+    target_user_ids: targetUserIds,
+    group_id: groupId,
+    active: payload?.active !== false,
+  };
+  const { data } = await supabaseRequest(restPath("reward_catalog"), {
+    method: "POST",
+    useServiceRole: true,
+    prefer: "return=representation",
+    body: row,
+  });
+  return data?.[0] || row;
+}
+
 module.exports = {
   configured,
   publicConfig,
@@ -722,6 +892,8 @@ module.exports = {
   joinStudyTeam,
   leaveStudyTeam,
   getStudyTeamCheckins,
+  getAvailableRewards,
+  redeemReward,
   saveHabiticaConnection,
   getHabiticaConnection,
   googleOAuthUrl,
@@ -734,5 +906,9 @@ module.exports = {
   adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError },
+  adminListRewards,
+  adminCreateReward,
+  adminListRewardGroups,
+  adminCreateRewardGroup,
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, translateRewardError, parseRecipientIds },
 };

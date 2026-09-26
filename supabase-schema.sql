@@ -100,6 +100,52 @@ create table if not exists public.study_team_members (
 create index if not exists study_team_members_team_joined_idx
   on public.study_team_members(team_id, joined_at);
 
+create table if not exists public.reward_groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 40),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.reward_group_members (
+  group_id uuid not null references public.reward_groups(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+
+create table if not exists public.reward_catalog (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 60),
+  description text not null default '' check (char_length(description) <= 500),
+  coin_cost integer not null default 0 check (coin_cost >= 0),
+  stock integer check (stock is null or stock >= 0),
+  per_user_limit integer not null default 1 check (per_user_limit between 1 and 999),
+  audience_mode text not null default 'all' check (audience_mode in ('all', 'users', 'group')),
+  target_user_ids uuid[] not null default '{}'::uuid[],
+  group_id uuid references public.reward_groups(id) on delete set null,
+  active boolean not null default true,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at is null or starts_at is null or ends_at > starts_at)
+);
+
+create table if not exists public.reward_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  reward_id uuid not null references public.reward_catalog(id) on delete restrict,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  coin_cost integer not null check (coin_cost >= 0),
+  status text not null default 'redeemed' check (status in ('redeemed', 'fulfilled', 'cancelled')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists reward_redemptions_reward_user_idx
+  on public.reward_redemptions(reward_id, user_id, created_at desc);
+create index if not exists reward_group_members_user_idx
+  on public.reward_group_members(user_id, group_id);
+
 create table if not exists public.ai_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   provider text not null default 'glm',
@@ -132,6 +178,10 @@ alter table public.profiles enable row level security;
 alter table public.checkins enable row level security;
 alter table public.study_teams enable row level security;
 alter table public.study_team_members enable row level security;
+alter table public.reward_groups enable row level security;
+alter table public.reward_group_members enable row level security;
+alter table public.reward_catalog enable row level security;
+alter table public.reward_redemptions enable row level security;
 alter table public.ai_preferences enable row level security;
 alter table public.habitica_connections enable row level security;
 alter table public.usage_counters enable row level security;
@@ -279,6 +329,70 @@ begin
     raise exception 'DAILY_AI_LIMIT_REACHED';
   end if;
   return v_count;
+end;
+$$;
+
+-- 服务端专用版本：奖励数值只能由受信任的应用服务写入，避免客户端直接调用 RPC 刷金币。
+create or replace function public.record_checkin_server(
+  p_user_id uuid,
+  p_text text,
+  p_topics jsonb,
+  p_photo_count integer,
+  p_review jsonb,
+  p_provider text,
+  p_model text,
+  p_xp integer,
+  p_coin integer,
+  p_ai_options jsonb
+)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := p_user_id;
+  v_profile public.profiles%rowtype;
+  v_streak integer;
+  v_checkin public.checkins%rowtype;
+begin
+  if auth.role() <> 'service_role' then raise exception 'Service role required'; end if;
+  if v_user is null then raise exception 'User required'; end if;
+  if p_xp < 0 or p_xp > 220 or p_coin < 0 or p_coin > 50 then raise exception 'Invalid rewards'; end if;
+
+  insert into public.profiles(id) values (v_user) on conflict (id) do nothing;
+  select * into v_profile from public.profiles where id = v_user for update;
+  if v_profile.approval_status = 'rejected' then
+    raise exception 'ACCOUNT_REJECTED';
+  elsif v_profile.approval_status <> 'approved' then
+    raise exception 'ACCOUNT_PENDING_APPROVAL';
+  end if;
+
+  if v_profile.last_date = current_date then
+    v_streak := v_profile.streak;
+  elsif v_profile.last_date = current_date - 1 then
+    v_streak := v_profile.streak + 1;
+  else
+    v_streak := 1;
+  end if;
+
+  insert into public.checkins(user_id, study_text, topics, photo_count, score, title, review, provider, model, xp, coin, ai_options)
+  values (
+    v_user, left(coalesce(p_text, ''), 4000), coalesce(p_topics, '[]'::jsonb),
+    greatest(0, least(6, p_photo_count)),
+    greatest(0, least(100, coalesce((p_review->>'score')::integer, 60))),
+    left(coalesce(p_review->>'title', '学习打卡'), 80), p_review,
+    left(p_provider, 100), left(p_model, 120), p_xp, p_coin, coalesce(p_ai_options, '{}'::jsonb)
+  ) returning * into v_checkin;
+
+  update public.profiles
+    set xp = xp + p_xp, coin = coin + p_coin, streak = v_streak,
+        last_date = current_date, updated_at = now()
+    where id = v_user returning * into v_profile;
+
+  return jsonb_build_object(
+    'profile', jsonb_build_object('xp', v_profile.xp, 'coin', v_profile.coin, 'streak', v_profile.streak, 'lastDate', v_profile.last_date),
+    'checkin', jsonb_build_object('id', v_checkin.id, 'score', v_checkin.score, 'title', v_checkin.title, 'provider', v_checkin.provider, 'xp', v_checkin.xp, 'coin', v_checkin.coin, 'createdAt', v_checkin.created_at)
+  );
 end;
 $$;
 
@@ -479,8 +593,119 @@ begin
 end;
 $$;
 
+create or replace function public.get_available_rewards()
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_coin integer;
+  v_status text;
+  v_rewards jsonb;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  select coin, approval_status into v_coin, v_status from public.profiles where id = v_user;
+  if v_status <> 'approved' then raise exception 'ACCOUNT_NOT_APPROVED'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', visible.id,
+    'title', visible.title,
+    'description', visible.description,
+    'coinCost', visible.coin_cost,
+    'stock', visible.stock,
+    'redeemedTotal', visible.redeemed_total,
+    'remainingStock', case when visible.stock is null then null else greatest(0, visible.stock - visible.redeemed_total) end,
+    'perUserLimit', visible.per_user_limit,
+    'redeemedByMe', visible.redeemed_by_me,
+    'remainingForMe', greatest(0, visible.per_user_limit - visible.redeemed_by_me),
+    'audienceMode', visible.audience_mode,
+    'groupName', visible.group_name,
+    'canRedeem', v_coin >= visible.coin_cost
+      and visible.redeemed_by_me < visible.per_user_limit
+      and (visible.stock is null or visible.redeemed_total < visible.stock),
+    'createdAt', visible.created_at
+  ) order by visible.created_at desc), '[]'::jsonb)
+  into v_rewards
+  from (
+    select r.*,
+      g.name as group_name,
+      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.status <> 'cancelled') as redeemed_total,
+      (select count(*)::integer from public.reward_redemptions rr where rr.reward_id = r.id and rr.user_id = v_user and rr.status <> 'cancelled') as redeemed_by_me
+    from public.reward_catalog r
+    left join public.reward_groups g on g.id = r.group_id
+    where r.active is true
+      and (r.starts_at is null or r.starts_at <= now())
+      and (r.ends_at is null or r.ends_at > now())
+      and (
+        r.audience_mode = 'all'
+        or (r.audience_mode = 'users' and v_user = any(r.target_user_ids))
+        or (r.audience_mode = 'group' and exists (
+          select 1 from public.reward_group_members gm where gm.group_id = r.group_id and gm.user_id = v_user
+        ))
+      )
+  ) visible;
+
+  return jsonb_build_object('coin', coalesce(v_coin, 0), 'rewards', v_rewards);
+end;
+$$;
+
+create or replace function public.redeem_reward(p_reward_id uuid)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_reward public.reward_catalog%rowtype;
+  v_profile public.profiles%rowtype;
+  v_user_count integer;
+  v_total_count integer;
+  v_redemption public.reward_redemptions%rowtype;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+  select * into v_reward from public.reward_catalog where id = p_reward_id for update;
+  if not found then raise exception 'REWARD_NOT_FOUND'; end if;
+  if not v_reward.active or (v_reward.starts_at is not null and v_reward.starts_at > now())
+    or (v_reward.ends_at is not null and v_reward.ends_at <= now()) then
+    raise exception 'REWARD_UNAVAILABLE';
+  end if;
+  if v_reward.audience_mode = 'users' and not (v_user = any(v_reward.target_user_ids)) then
+    raise exception 'REWARD_NOT_FOR_USER';
+  end if;
+  if v_reward.audience_mode = 'group' and not exists (
+    select 1 from public.reward_group_members where group_id = v_reward.group_id and user_id = v_user
+  ) then
+    raise exception 'REWARD_NOT_FOR_USER';
+  end if;
+
+  select * into v_profile from public.profiles where id = v_user for update;
+  if v_profile.approval_status <> 'approved' then raise exception 'ACCOUNT_NOT_APPROVED'; end if;
+  select count(*) into v_user_count from public.reward_redemptions
+    where reward_id = v_reward.id and user_id = v_user and status <> 'cancelled';
+  if v_user_count >= v_reward.per_user_limit then raise exception 'REWARD_LIMIT_REACHED'; end if;
+  select count(*) into v_total_count from public.reward_redemptions
+    where reward_id = v_reward.id and status <> 'cancelled';
+  if v_reward.stock is not null and v_total_count >= v_reward.stock then raise exception 'REWARD_OUT_OF_STOCK'; end if;
+  if v_profile.coin < v_reward.coin_cost then raise exception 'INSUFFICIENT_COINS'; end if;
+
+  update public.profiles set coin = coin - v_reward.coin_cost, updated_at = now() where id = v_user
+    returning * into v_profile;
+  insert into public.reward_redemptions(reward_id, user_id, coin_cost)
+    values (v_reward.id, v_user, v_reward.coin_cost) returning * into v_redemption;
+  return jsonb_build_object(
+    'redemptionId', v_redemption.id,
+    'coin', v_profile.coin,
+    'redeemedByMe', v_user_count + 1,
+    'redeemedTotal', v_total_count + 1
+  );
+end;
+$$;
+
 revoke all on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) from public;
-grant execute on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) to authenticated;
+revoke all on function public.record_checkin(text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) from authenticated;
+revoke all on function public.record_checkin_server(uuid, text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) from public;
+grant execute on function public.record_checkin_server(uuid, text, jsonb, integer, jsonb, text, text, integer, integer, jsonb) to service_role;
 revoke all on function public.consume_ai_quota(integer) from public;
 grant execute on function public.consume_ai_quota(integer) to authenticated;
 revoke all on function public.assert_team_user_approved() from public;
@@ -489,11 +714,15 @@ revoke all on function public.join_study_team(text, text) from public;
 revoke all on function public.get_my_study_team() from public;
 revoke all on function public.get_study_team_checkins(uuid, integer) from public;
 revoke all on function public.leave_study_team() from public;
+revoke all on function public.get_available_rewards() from public;
+revoke all on function public.redeem_reward(uuid) from public;
 grant execute on function public.create_study_team(text, text) to authenticated;
 grant execute on function public.join_study_team(text, text) to authenticated;
 grant execute on function public.get_my_study_team() to authenticated;
 grant execute on function public.get_study_team_checkins(uuid, integer) to authenticated;
 grant execute on function public.leave_study_team() to authenticated;
+grant execute on function public.get_available_rewards() to authenticated;
+grant execute on function public.redeem_reward(uuid) to authenticated;
 
 grant usage on schema public to authenticated;
 grant select on public.profiles, public.checkins to authenticated;

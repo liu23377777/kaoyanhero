@@ -41,3 +41,20 @@ test("password recovery has request and new-password modes", () => {
   assert.match(html, /\/api\/auth\/password\/reset-request/);
   assert.match(html, /\/api\/auth\/password\/update/);
 });
+
+test("rewards have a member redemption view and admin publishing and grouping views", () => {
+  assert.match(html, /id="rewardButton"/);
+  assert.match(html, /id="rewardModal"/);
+  assert.match(html, /id="adminRewardForm"/);
+  assert.match(html, /id="adminGroupForm"/);
+  assert.match(html, /\/api\/rewards/);
+  assert.match(html, /\/api\/admin\/rewards/);
+  assert.match(html, /\/api\/admin\/reward-groups/);
+});
+
+test("history rows can reopen complete AI evaluations and show same-day times", () => {
+  assert.match(html, /data-history-id=/);
+  assert.match(html, /historyList\.addEventListener\("click"/);
+  assert.match(html, /formatCloudDateTime/);
+  assert.match(html, /showHistoricalReview/);
+});

@@ -93,3 +93,40 @@ test("rejects a tampered or missing admin session cookie", () => {
   assert.equal(cloud.isAdminRequest({ headers: { cookie: "kh_admin=1234567890.deadbeef" } }), false);
   assert.throws(() => cloud.requireAdmin({ headers: {} }), (error) => error.status === 401);
 });
+
+test("user state keeps complete AI reviews so every historical check-in can be reopened", async (t) => {
+  const previous = {
+    url: process.env.SUPABASE_URL,
+    anon: process.env.SUPABASE_ANON_KEY,
+    fetch: global.fetch,
+  };
+  process.env.SUPABASE_URL = "https://project-ref.supabase.co";
+  process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  const requestedUrls = [];
+  global.fetch = async (url) => {
+    requestedUrls.push(String(url));
+    let data = [];
+    if (String(url).includes("/profiles?")) {
+      data = [{ id: "user-1", xp: 200, coin: 30, streak: 2, approval_status: "approved" }];
+    } else if (String(url).includes("/checkins?")) {
+      data = [{
+        id: "checkin-1", study_text: "数学真题复盘", topics: ["数学"], photo_count: 2,
+        score: 88, title: "真题推进", review: { score: 88, summary: "完成充分", highlights: [], suggestions: [], detectedEvidence: [] },
+        provider: "智谱 GLM", model: "glm-4.6v-flash", xp: 120, coin: 28, created_at: "2026-09-26T08:30:00Z",
+      }];
+    }
+    return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  t.after(() => {
+    global.fetch = previous.fetch;
+    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
+    if (previous.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = previous.anon;
+  });
+
+  const state = await cloud.getUserState({ user: { id: "user-1" }, accessToken: "signed-user-token" });
+  assert.deepEqual(state.history[0].review.summary, "完成充分");
+  assert.equal(state.history[0].studyText, "数学真题复盘");
+  assert.equal(state.history[0].coin, 28);
+  assert.equal(state.history[0].model, "glm-4.6v-flash");
+  assert.ok(requestedUrls.some((url) => url.includes("review") && url.includes("coin") && url.includes("model")));
+});

@@ -88,8 +88,9 @@
     .top-nav { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,253,248,.72); }
     .top-nav a { padding: 7px 11px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; transition: .2s; }
     .top-nav a:hover { background: white; color: var(--ink); }
-    .team-button { padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--yellow); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 900; box-shadow: 2px 2px 0 var(--ink); }
-    .team-button:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+    .team-button, .reward-button { padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--yellow); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 900; box-shadow: 2px 2px 0 var(--ink); }
+    .reward-button { background: white; }
+    .team-button:hover, .reward-button:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
     .account-button { min-width: 84px; padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--ink); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
 
     .date-chip {
@@ -426,7 +427,9 @@
     .history-title span { color: var(--muted); font-size: 11px; }
     .history-list { display: grid; gap: 9px; }
     .history-empty { padding: 16px; border-radius: 13px; background: var(--paper-deep); color: var(--muted); text-align: center; font-size: 12px; }
-    .history-item { display: grid; grid-template-columns: 42px 1fr auto; gap: 11px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .history-day { margin: 7px 2px 0; color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .08em; }
+    .history-item { width: 100%; display: grid; grid-template-columns: 42px 1fr auto; gap: 11px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: 13px; background: white; color: var(--ink); cursor: pointer; text-align: left; }
+    .history-item:hover, .history-item.active { border-color: var(--blue); background: #f5f7ff; box-shadow: 2px 2px 0 rgba(71,107,214,.22); }
     .history-score { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 11px; background: var(--ink); color: white; font-size: 13px; font-weight: 900; }
     .history-content { min-width: 0; }
     .history-content strong, .history-content span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -641,6 +644,48 @@
     .team-checkin p { margin: 0; color: #485168; font-size: 11px; line-height: 1.65; white-space: pre-wrap; }
     .team-checkin-summary { margin-top: 5px !important; color: var(--muted) !important; }
 
+    .reward-modal { position: fixed; inset: 0; z-index: 34; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
+    .reward-modal.open { display: flex; }
+    .reward-dialog { width: min(860px, 100%); max-height: 88vh; overflow-y: auto; border: 2px solid var(--ink); border-radius: 26px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
+    .reward-vault-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 27px 70px 25px 27px; overflow: hidden; background: var(--ink); color: white; position: relative; }
+    .reward-vault-head::after { content: "✦"; position: absolute; right: 24px; bottom: -24px; color: rgba(255,200,87,.16); font-size: 112px; line-height: 1; }
+    .reward-vault-head h2 { margin: 0 0 7px; font-size: 25px; }
+    .reward-vault-head p { max-width: 530px; margin: 0; color: rgba(255,255,255,.62); font-size: 11px; line-height: 1.7; }
+    .reward-wallet { flex: 0 0 auto; padding: 10px 13px; border: 1px solid rgba(255,255,255,.2); border-radius: 13px; background: rgba(255,255,255,.08); color: var(--yellow); font-weight: 900; }
+    .reward-close { position: absolute; z-index: 2; top: 14px; right: 14px; width: 33px; height: 33px; border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: white; cursor: pointer; }
+    .reward-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; padding: 22px; }
+    .reward-card { display: grid; align-content: start; min-height: 195px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: white; position: relative; overflow: hidden; }
+    .reward-card::after { content: "🎁"; position: absolute; right: 13px; top: 10px; opacity: .12; font-size: 46px; }
+    .reward-card h3 { margin: 9px 54px 6px 0; font-size: 17px; }
+    .reward-card p { margin: 0 0 15px; color: var(--muted); font-size: 11px; line-height: 1.65; }
+    .reward-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .reward-tag { padding: 4px 7px; border-radius: 999px; background: var(--paper-deep); color: var(--muted); font-size: 8px; font-weight: 900; }
+    .reward-tag.targeted { background: #edf0fb; color: var(--blue); }
+    .reward-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 16px; }
+    .reward-cost { color: #9a6410; font-size: 15px; font-weight: 950; }
+    .reward-redeem { padding: 9px 13px; border: 0; border-radius: 10px; background: var(--blue); color: white; cursor: pointer; font-size: 10px; font-weight: 900; }
+    .reward-redeem:disabled { background: var(--paper-deep); color: var(--muted); cursor: not-allowed; }
+    .reward-empty { grid-column: 1 / -1; min-height: 190px; display: grid; place-items: center; padding: 28px; border: 1px dashed var(--line); border-radius: 18px; background: var(--paper-deep); color: var(--muted); text-align: center; font-size: 12px; }
+
+    .admin-tabs { display: flex; gap: 6px; margin: 0 0 16px; padding: 5px; border-radius: 13px; background: var(--paper-deep); }
+    .admin-tab { flex: 1; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; font-size: 10px; font-weight: 900; }
+    .admin-tab.active { background: white; color: var(--ink); box-shadow: 0 2px 10px rgba(24,34,59,.08); }
+    .admin-pane { display: block; }
+    .admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-bottom: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .admin-form-grid h3 { grid-column: 1 / -1; margin: 0; font-size: 16px; }
+    .admin-field { display: grid; gap: 6px; color: var(--muted); font-size: 9px; font-weight: 900; }
+    .admin-field.full { grid-column: 1 / -1; }
+    .admin-field input, .admin-field textarea, .admin-field select { min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); outline: 0; }
+    .admin-field textarea { min-height: 82px; resize: vertical; line-height: 1.5; }
+    .admin-field small { color: var(--muted); font-weight: 500; line-height: 1.5; }
+    .admin-submit { grid-column: 1 / -1; padding: 11px; border: 0; border-radius: 11px; background: var(--ink); color: white; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .admin-member-picker { grid-column: 1 / -1; max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; }
+    .admin-member-option { display: flex; align-items: center; gap: 7px; padding: 7px; border-radius: 8px; background: var(--paper-deep); color: var(--ink); font-size: 9px; overflow-wrap: anywhere; }
+    .admin-reward-list, .admin-group-list { display: grid; gap: 9px; }
+    .admin-reward-row, .admin-group-row { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+    .admin-reward-row strong, .admin-group-row strong { display: block; font-size: 12px; }
+    .admin-reward-row span, .admin-group-row span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -688,9 +733,12 @@
       .review-choice-grid { grid-template-columns: 1fr; }
       .admin-user-actions { width: 100%; justify-content: flex-start; }
       .topbar-actions { gap: 7px; }
-      .team-button, .account-button { padding: 8px 10px; font-size: 11px; }
+      .team-button, .reward-button, .account-button { padding: 8px 10px; font-size: 11px; }
       .team-dialog { padding: 22px 17px; box-shadow: 5px 5px 0 var(--yellow); }
       .team-setup-grid { grid-template-columns: 1fr; }
+      .reward-grid, .admin-form-grid { grid-template-columns: 1fr; }
+      .admin-field.full, .admin-form-grid h3, .admin-submit, .admin-member-picker { grid-column: 1; }
+      .admin-member-picker { grid-template-columns: 1fr; }
       .team-head-card { flex-direction: column; }
       .invite-card { text-align: left; }
       .team-member-main { align-items: flex-start; flex-wrap: wrap; }
@@ -712,6 +760,7 @@
       <div class="topbar-actions">
         <nav class="top-nav" aria-label="页面导航"><a href="#homeSection">首页</a><a href="#checkinSection">打卡</a><a href="#historySection">战绩</a></nav>
         <div class="date-chip" id="todayLabel">今天也要稳稳推进</div>
+        <button class="reward-button" id="rewardButton" type="button">🎁 奖励</button>
         <button class="team-button" id="teamButton" type="button">👥 队友</button>
         <button class="account-button" id="accountButton" type="button">登录 / 注册</button>
       </div>
@@ -862,7 +911,7 @@
         </section>
 
         <section class="card history-card" id="historySection">
-          <div class="history-title"><h3>最近战绩</h3><span>仅保存在本机</span></div>
+          <div class="history-title"><h3>最近战绩</h3><span id="historyHint">点击查看完整评价</span></div>
           <div class="history-list" id="historyList"><div class="history-empty">完成第一次打卡后，战绩会出现在这里。</div></div>
         </section>
 
@@ -962,6 +1011,17 @@
     </div>
   </div>
 
+  <div class="reward-modal" id="rewardModal" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+    <div class="reward-dialog">
+      <button class="reward-close" id="rewardClose" type="button" aria-label="关闭">×</button>
+      <header class="reward-vault-head">
+        <div><h2 id="rewardTitle">勇者奖励库</h2><p>用打卡获得的金币兑换管理员发布的奖励。定向奖励只会出现在对应成员的列表中。</p></div>
+        <div class="reward-wallet" id="rewardWallet">🪙 0</div>
+      </header>
+      <div class="reward-grid" id="rewardGrid"><div class="reward-empty">正在整理奖励库…</div></div>
+    </div>
+  </div>
+
   <div class="admin-modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
     <div class="admin-dialog">
       <button class="admin-close" id="adminClose" type="button" aria-label="关闭">×</button>
@@ -974,14 +1034,42 @@
       </form>
 
       <div class="admin-panel" id="adminPanel" hidden>
-        <div class="admin-toolbar">
-          <strong id="adminSummary">共 0 位用户</strong>
-          <div class="admin-toolbar-actions">
-            <button class="admin-refresh" id="adminRefresh" type="button">刷新</button>
-            <button class="admin-logout" id="adminLogout" type="button">退出管理员</button>
-          </div>
+        <div class="admin-tabs" role="tablist" aria-label="后台功能">
+          <button class="admin-tab active" type="button" data-admin-tab="users">用户审核</button>
+          <button class="admin-tab" type="button" data-admin-tab="rewards">奖励发布</button>
+          <button class="admin-tab" type="button" data-admin-tab="groups">成员分组</button>
         </div>
-        <div class="admin-users" id="adminUsers"><div class="admin-empty">正在加载用户列表…</div></div>
+        <section class="admin-pane" data-admin-pane="users">
+          <div class="admin-toolbar">
+            <strong id="adminSummary">共 0 位用户</strong>
+            <div class="admin-toolbar-actions"><button class="admin-refresh" id="adminRefresh" type="button">刷新</button><button class="admin-logout" id="adminLogout" type="button">退出管理员</button></div>
+          </div>
+          <div class="admin-users" id="adminUsers"><div class="admin-empty">正在加载用户列表…</div></div>
+        </section>
+        <section class="admin-pane" data-admin-pane="rewards" hidden>
+          <form class="admin-form-grid" id="adminRewardForm">
+            <h3>发布新奖励</h3>
+            <label class="admin-field">奖励名称<input name="title" maxlength="60" required placeholder="例如：新手补给包"></label>
+            <label class="admin-field">兑换金币<input name="coinCost" type="number" min="0" value="30" required></label>
+            <label class="admin-field full">奖励说明<textarea name="description" maxlength="500" placeholder="说明具体包含什么，以及如何领取"></textarea></label>
+            <label class="admin-field">总库存<input name="stock" type="number" min="1" placeholder="留空表示不限"></label>
+            <label class="admin-field">每人限兑次数<input name="perUserLimit" type="number" min="1" max="999" value="1" required></label>
+            <label class="admin-field">发布范围<select name="audienceMode" id="adminRewardAudience"><option value="all">所有成员</option><option value="users">指定成员</option><option value="group">指定分组</option></select></label>
+            <label class="admin-field" id="adminRewardGroupField" hidden>指定分组<select name="groupId" id="adminRewardGroupSelect"></select></label>
+            <label class="admin-field full" id="adminRewardUsersField" hidden>指定用户 ID<textarea name="targetUserIds" placeholder="多个 UUID 可用逗号、空格、分号或换行分隔"></textarea><small>也可以先在“成员分组”里建立常用分组，再按分组发布。</small></label>
+            <button class="admin-submit" type="submit">发布奖励</button>
+          </form>
+          <div class="admin-reward-list" id="adminRewards"><div class="admin-empty">正在加载奖励…</div></div>
+        </section>
+        <section class="admin-pane" data-admin-pane="groups" hidden>
+          <form class="admin-form-grid" id="adminGroupForm">
+            <h3>创建成员分组</h3>
+            <label class="admin-field full">分组名称<input name="name" maxlength="40" required placeholder="例如：数学冲刺组"></label>
+            <div class="admin-member-picker" id="adminGroupMembers"><div class="admin-empty">先加载用户列表</div></div>
+            <button class="admin-submit" type="submit">创建分组</button>
+          </form>
+          <div class="admin-group-list" id="adminGroups"><div class="admin-empty">正在加载分组…</div></div>
+        </section>
       </div>
     </div>
   </div>
@@ -1024,6 +1112,7 @@
     let accountApproved = true;
     let adminAuthenticated = false;
     let adminUsersById = new Map();
+    let adminRewardGroups = [];
     let adminReviewTargetId = "";
     let studyTeam = null;
 
@@ -1038,6 +1127,7 @@
       rewardStrip: $("#rewardStrip"), modelBadge: $("#modelBadge"), historyList: $("#historyList"),
       accountButton: $("#accountButton"), authModal: $("#authModal"), authForm: $("#authForm"), authPrimary: $("#authPrimary"),
       teamModal: $("#teamModal"), teamContent: $("#teamContent"),
+      rewardModal: $("#rewardModal"), rewardGrid: $("#rewardGrid"), rewardWallet: $("#rewardWallet"),
       habiticaSetup: $("#habiticaSetup"), habiticaForm: $("#habiticaForm"), habiticaConnect: $("#habiticaConnect")
     };
 
@@ -1079,12 +1169,17 @@
         elements.historyList.innerHTML = '<div class="history-empty">完成第一次打卡后，战绩会出现在这里。</div>';
         return;
       }
-      elements.historyList.innerHTML = state.history.slice(0, 5).map((item) => `
-        <div class="history-item">
+      let previousDay = "";
+      elements.historyList.innerHTML = state.history.slice(0, 20).map((item, index) => {
+        const day = formatCloudDay(item.createdAt || item.date);
+        const dayLabel = day !== previousDay ? `<div class="history-day">${escapeHtml(day)}</div>` : "";
+        previousDay = day;
+        return `${dayLabel}<button class="history-item" type="button" data-history-id="${escapeHtml(item.id || String(index))}">
           <div class="history-score">${Number(item.score) || 0}</div>
-          <div class="history-content"><strong>${escapeHtml(item.title || "学习打卡")}</strong><span>${escapeHtml(item.date || formatCloudDate(item.createdAt))} · ${escapeHtml(item.provider || "AI")}</span></div>
+          <div class="history-content"><strong>${escapeHtml(item.title || "学习打卡")}</strong><span>${escapeHtml(formatCloudDateTime(item.createdAt || item.date))} · ${escapeHtml(item.provider || "AI")}</span></div>
           <div class="history-reward">+${Number(item.xp) || 0} XP</div>
-        </div>`).join("");
+        </button>`;
+      }).join("");
     }
 
     function formatCloudDate(value) {
@@ -1100,6 +1195,7 @@
       state.streak = Number(profile.streak || 0);
       state.lastDate = profile.lastDate || "";
       state.history = Array.isArray(data?.history) ? data.history : [];
+      $("#historyHint").textContent = "已同步云端 · 点击查看";
       const status = ["pending", "approved", "rejected"].includes(profile.approvalStatus)
         ? profile.approvalStatus
         : (profile.approved === true ? "approved" : "pending");
@@ -1136,6 +1232,34 @@
       return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("zh-CN", {
         year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
       }).format(date);
+    }
+
+    function formatCloudDay(value) {
+      if (!value) return "今天";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      const today = localDateKey();
+      const key = localDateKey(date);
+      if (key === today) return "今天";
+      return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(date);
+    }
+
+    function formatCloudDateTime(value) {
+      if (!value) return "刚刚";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+    }
+
+    function showHistoricalReview(item) {
+      if (!item?.review) return showToast("这条旧记录没有保存完整评价", "error");
+      showReview({
+        review: item.review,
+        rewards: { xp: Number(item.xp) || 0, coin: Number(item.coin) || 0 },
+        meta: { provider: item.provider || "AI", model: item.model || "历史评价" },
+      });
+      document.querySelectorAll("[data-history-id]").forEach((button) => button.classList.toggle("active", button.dataset.historyId === String(item.id)));
+      if (window.innerWidth < 880) $(".review-card").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     function setApprovalBanner(approval) {
@@ -1335,6 +1459,9 @@
 
     function showReview(data) {
       const { review, rewards, meta } = data;
+      const highlights = Array.isArray(review.highlights) ? review.highlights : [];
+      const suggestions = Array.isArray(review.suggestions) ? review.suggestions : [];
+      const detectedEvidence = Array.isArray(review.detectedEvidence) ? review.detectedEvidence : [];
       elements.emptyReview.style.display = "none";
       elements.resultReview.style.display = "block";
       elements.reviewBody.style.display = "block";
@@ -1346,15 +1473,15 @@
       $("#discoveredTopics").innerHTML = (review.discoveredTopics || []).map((topic) => `<span class="discovered-topic">${escapeHtml(topic)}</span>`).join("");
       $("#knowledgeReview").innerHTML = topicReviewHtml(review.topicReviews);
       $("#knowledgeBlock").style.display = review.topicReviews?.length ? "block" : "none";
-      $("#highlights").innerHTML = listHtml(review.highlights.length ? review.highlights : review.detectedEvidence);
-      $("#suggestions").innerHTML = listHtml(review.suggestions);
-      $("#highlightsBlock").style.display = (review.highlights.length || review.detectedEvidence.length) ? "block" : "none";
-      $("#suggestionsBlock").style.display = review.suggestions.length ? "block" : "none";
+      $("#highlights").innerHTML = listHtml(highlights.length ? highlights : detectedEvidence);
+      $("#suggestions").innerHTML = listHtml(suggestions);
+      $("#highlightsBlock").style.display = (highlights.length || detectedEvidence.length) ? "block" : "none";
+      $("#suggestionsBlock").style.display = suggestions.length ? "block" : "none";
       $("#nextGoal").textContent = review.nextGoal;
       $("#earnedXp").textContent = `+${rewards.xp}`;
       $("#earnedCoin").textContent = `+${rewards.coin}`;
       $("#credibility").textContent = ({ high: "高", medium: "中", low: "低" })[review.credibility] || "中";
-      elements.modelBadge.textContent = `${meta.provider} · ${meta.model}`;
+      elements.modelBadge.textContent = `${meta?.provider || "AI"} · ${meta?.model || "历史评价"}`;
       if (data.habitica?.configured) {
         $("#habiticaStatus").classList.toggle("ready", data.habitica.synced);
         $("#habiticaStatus").textContent = data.habitica.synced ? "已同步" : "同步失败";
@@ -1399,11 +1526,15 @@
           state.xp += data.rewards.xp;
           state.coin += data.rewards.coin;
           state.history.unshift({
+            id: `local-${Date.now()}`,
             score: data.review.score,
             title: data.review.title,
-            date: new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(new Date()),
+            createdAt: new Date().toISOString(),
             provider: data.meta.provider,
-            xp: data.rewards.xp
+            model: data.meta.model,
+            review: data.review,
+            xp: data.rewards.xp,
+            coin: data.rewards.coin,
           });
           state.history = state.history.slice(0, 20);
           saveState();
@@ -1945,6 +2076,90 @@
       }
     }
 
+    function closeRewardCenter() {
+      elements.rewardModal.classList.remove("open");
+    }
+
+    function rewardAudienceLabel(reward) {
+      if (reward.audienceMode === "group") return reward.groupName ? `分组 · ${reward.groupName}` : "分组专享";
+      if (reward.audienceMode === "users") return "你的专属奖励";
+      return "所有成员";
+    }
+
+    function renderRewards(rewards) {
+      if (!rewards.length) {
+        elements.rewardGrid.innerHTML = '<div class="reward-empty"><div><strong>奖励库正在补货</strong><br><br>管理员发布奖励后会出现在这里。</div></div>';
+        return;
+      }
+      elements.rewardGrid.innerHTML = rewards.map((reward) => {
+        const soldOut = reward.remainingStock === 0;
+        const limitReached = Number(reward.remainingForMe) <= 0;
+        const insufficient = state.coin < Number(reward.coinCost || 0);
+        const disabled = !reward.canRedeem;
+        const buttonText = soldOut ? "已兑完" : limitReached ? "已达上限" : insufficient ? "金币不足" : "立即兑换";
+        const stockLabel = reward.stock === null ? "库存不限" : `剩余 ${Number(reward.remainingStock) || 0} 份`;
+        return `<article class="reward-card">
+          <div class="reward-tags"><span class="reward-tag targeted">${escapeHtml(rewardAudienceLabel(reward))}</span><span class="reward-tag">${escapeHtml(stockLabel)}</span><span class="reward-tag">每人 ${Number(reward.perUserLimit) || 1} 次</span></div>
+          <h3>${escapeHtml(reward.title || "勇者奖励")}</h3>
+          <p>${escapeHtml(reward.description || "兑换后请联系管理员领取。")}</p>
+          <div class="reward-card-foot"><span class="reward-cost">🪙 ${Number(reward.coinCost) || 0}</span><button class="reward-redeem" type="button" data-reward-id="${escapeHtml(reward.id)}" ${disabled ? "disabled" : ""}>${buttonText}</button></div>
+        </article>`;
+      }).join("");
+    }
+
+    async function loadRewards() {
+      elements.rewardGrid.innerHTML = '<div class="reward-empty">正在读取可兑换奖励…</div>';
+      try {
+        const response = await fetch("/api/rewards");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取奖励");
+        state.coin = Number(data.coin || 0);
+        elements.rewardWallet.textContent = `🪙 ${state.coin}`;
+        updateDashboard();
+        renderRewards(Array.isArray(data.rewards) ? data.rewards : []);
+      } catch (error) {
+        elements.rewardGrid.innerHTML = `<div class="reward-empty">${escapeHtml(error.message || "奖励加载失败")}</div>`;
+      }
+    }
+
+    async function openRewardCenter() {
+      elements.rewardModal.classList.add("open");
+      elements.rewardWallet.textContent = `🪙 ${state.coin}`;
+      if (!appConfig.cloudMode) {
+        elements.rewardGrid.innerHTML = '<div class="reward-empty">奖励兑换需要启用 Supabase 云端账户。</div>';
+        return;
+      }
+      if (!currentUser) {
+        elements.rewardGrid.innerHTML = '<div class="reward-empty">请先登录，再查看为你准备的奖励。</div>';
+        return;
+      }
+      if (!accountApproved) {
+        elements.rewardGrid.innerHTML = '<div class="reward-empty">账号审核通过后即可兑换奖励。</div>';
+        return;
+      }
+      await loadRewards();
+    }
+
+    async function handleRewardAction(event) {
+      const button = event.target.closest("[data-reward-id]");
+      if (!button) return;
+      if (!window.confirm("确认使用金币兑换这个奖励吗？")) return;
+      button.disabled = true;
+      button.textContent = "兑换中…";
+      try {
+        const response = await fetch(`/api/rewards/${encodeURIComponent(button.dataset.rewardId)}/redeem`, { method: "POST" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "兑换失败");
+        state.coin = Number(data.coin || 0);
+        updateDashboard();
+        showToast("兑换成功，管理员可以在兑换记录中看到这次兑换");
+        await loadRewards();
+      } catch (error) {
+        showToast(error.message || "兑换失败", "error");
+        await loadRewards();
+      }
+    }
+
     function openAdminPanel() {
       $("#adminModal").classList.add("open");
       checkAdminSession();
@@ -1965,7 +2180,7 @@
       }
       $("#adminLoginForm").hidden = adminAuthenticated;
       $("#adminPanel").hidden = !adminAuthenticated;
-      if (adminAuthenticated) await loadAdminUsers();
+      if (adminAuthenticated) await Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups()]);
     }
 
     async function handleAdminLogin(event) {
@@ -2014,6 +2229,9 @@
         if (!response.ok) throw new Error(data.error || "无法读取用户列表");
         const users = Array.isArray(data.users) ? data.users : [];
         adminUsersById = new Map(users.map((user) => [user.id, user]));
+        $("#adminGroupMembers").innerHTML = users.length
+          ? users.map((user) => `<label class="admin-member-option"><input type="checkbox" name="memberId" value="${escapeHtml(user.id)}"><span>${escapeHtml(user.email)}<br>${escapeHtml(user.id)}</span></label>`).join("")
+          : '<div class="admin-empty">暂无可分组用户</div>';
         const counts = users.reduce((result, user) => {
           const status = ["pending", "approved", "rejected"].includes(user.approvalStatus)
             ? user.approvalStatus
@@ -2029,6 +2247,110 @@
         list.innerHTML = users.map(renderAdminUser).join("");
       } catch (error) {
         list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "加载失败")}</div>`;
+      }
+    }
+
+    function setAdminTab(tab) {
+      document.querySelectorAll("[data-admin-tab]").forEach((button) => button.classList.toggle("active", button.dataset.adminTab === tab));
+      document.querySelectorAll("[data-admin-pane]").forEach((pane) => { pane.hidden = pane.dataset.adminPane !== tab; });
+    }
+
+    function updateRewardAudienceFields() {
+      const mode = $("#adminRewardAudience").value;
+      $("#adminRewardUsersField").hidden = mode !== "users";
+      $("#adminRewardGroupField").hidden = mode !== "group";
+    }
+
+    async function loadAdminRewardGroups() {
+      const list = $("#adminGroups");
+      try {
+        const response = await fetch("/api/admin/reward-groups");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取成员分组");
+        adminRewardGroups = Array.isArray(data.groups) ? data.groups : [];
+        $("#adminRewardGroupSelect").innerHTML = adminRewardGroups.length
+          ? adminRewardGroups.map((group) => `<option value="${escapeHtml(group.id)}">${escapeHtml(group.name)} · ${group.members?.length || 0} 人</option>`).join("")
+          : '<option value="">请先创建分组</option>';
+        list.innerHTML = adminRewardGroups.length
+          ? adminRewardGroups.map((group) => `<div class="admin-group-row"><strong>${escapeHtml(group.name)}</strong><span>${(group.members || []).map((member) => escapeHtml(member.email)).join("、") || "暂无成员"}</span></div>`).join("")
+          : '<div class="admin-empty">还没有成员分组</div>';
+      } catch (error) {
+        adminRewardGroups = [];
+        list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "分组加载失败")}</div>`;
+      }
+    }
+
+    async function handleAdminGroupSubmit(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const memberIds = [...form.querySelectorAll('input[name="memberId"]:checked')].map((input) => input.value);
+      if (!memberIds.length) return showToast("请至少选择一位成员", "error");
+      const submit = form.querySelector("button[type=submit]");
+      submit.disabled = true;
+      submit.textContent = "创建中…";
+      try {
+        const response = await fetch("/api/admin/reward-groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: new FormData(form).get("name"), memberIds }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "创建分组失败");
+        form.reset();
+        showToast("成员分组已创建");
+        await loadAdminRewardGroups();
+      } catch (error) {
+        showToast(error.message || "创建分组失败", "error");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "创建分组";
+      }
+    }
+
+    async function loadAdminRewards() {
+      const list = $("#adminRewards");
+      try {
+        const response = await fetch("/api/admin/rewards");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "无法读取奖励");
+        const rewards = Array.isArray(data.rewards) ? data.rewards : [];
+        list.innerHTML = rewards.length ? rewards.map((reward) => {
+          const scope = reward.audienceMode === "all" ? "所有成员" : reward.audienceMode === "group" ? `分组：${reward.groupName || "未知"}` : `指定 ${reward.targetUserIds?.length || 0} 人`;
+          const stock = reward.stock === null ? "库存不限" : `库存 ${reward.redeemedTotal}/${reward.stock}`;
+          const latest = (reward.redemptions || []).slice(0, 5).map((item) => `${item.email}（${formatCloudDateTime(item.createdAt)}）`).join("、");
+          return `<div class="admin-reward-row"><strong>${escapeHtml(reward.title)} · 🪙 ${Number(reward.coinCost) || 0}</strong><span>${escapeHtml(scope)} · ${escapeHtml(stock)} · 每人限兑 ${Number(reward.perUserLimit) || 1} 次 · 已兑换 ${Number(reward.redeemedTotal) || 0} 次</span>${latest ? `<span>最近兑换：${escapeHtml(latest)}</span>` : ""}</div>`;
+        }).join("") : '<div class="admin-empty">还没有发布奖励</div>';
+      } catch (error) {
+        list.innerHTML = `<div class="admin-empty">${escapeHtml(error.message || "奖励加载失败")}</div>`;
+      }
+    }
+
+    async function handleAdminRewardSubmit(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = Object.fromEntries(new FormData(form));
+      const submit = form.querySelector("button[type=submit]");
+      submit.disabled = true;
+      submit.textContent = "发布中…";
+      try {
+        const response = await fetch("/api/admin/rewards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "奖励发布失败");
+        form.reset();
+        form.elements.coinCost.value = "30";
+        form.elements.perUserLimit.value = "1";
+        updateRewardAudienceFields();
+        showToast("奖励已发布");
+        await loadAdminRewards();
+      } catch (error) {
+        showToast(error.message || "奖励发布失败", "error");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "发布奖励";
       }
     }
 
@@ -2119,7 +2441,7 @@
         if (!response.ok) throw new Error(data.error || "审核保存失败");
         closeAdminReview();
         showToast(status === "approved" ? "已通过该用户并保存评语" : "已标记为未通过并保存评语");
-        await loadAdminUsers();
+        await Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups()]);
       } catch (error) {
         showToast(error.message || "审核保存失败", "error");
       } finally {
@@ -2217,6 +2539,16 @@
     ["dragleave", "drop"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.remove("dragover"); }));
     elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
     elements.accountButton.addEventListener("click", () => openAuth());
+    elements.historyList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-history-id]");
+      if (!button) return;
+      const item = state.history.find((entry, index) => String(entry.id || index) === button.dataset.historyId);
+      if (item) showHistoricalReview(item);
+    });
+    $("#rewardButton").addEventListener("click", openRewardCenter);
+    $("#rewardClose").addEventListener("click", closeRewardCenter);
+    elements.rewardModal.addEventListener("click", (event) => { if (event.target === elements.rewardModal) closeRewardCenter(); });
+    elements.rewardGrid.addEventListener("click", handleRewardAction);
     $("#teamButton").addEventListener("click", openTeamPanel);
     $("#teamClose").addEventListener("click", closeTeamPanel);
     elements.teamModal.addEventListener("click", (event) => { if (event.target === elements.teamModal) closeTeamPanel(); });
@@ -2243,7 +2575,11 @@
     $("#adminModal").addEventListener("click", (event) => { if (event.target === $("#adminModal")) closeAdminPanel(); });
     $("#adminLoginForm").addEventListener("submit", handleAdminLogin);
     $("#adminLogout").addEventListener("click", handleAdminLogout);
-    $("#adminRefresh").addEventListener("click", loadAdminUsers);
+    $("#adminRefresh").addEventListener("click", () => Promise.all([loadAdminUsers(), loadAdminRewards(), loadAdminRewardGroups()]));
+    document.querySelectorAll("[data-admin-tab]").forEach((button) => button.addEventListener("click", () => setAdminTab(button.dataset.adminTab)));
+    $("#adminRewardAudience").addEventListener("change", updateRewardAudienceFields);
+    $("#adminRewardForm").addEventListener("submit", handleAdminRewardSubmit);
+    $("#adminGroupForm").addEventListener("submit", handleAdminGroupSubmit);
     $("#adminUsers").addEventListener("click", handleAdminUserAction);
     $("#adminReviewCancel").addEventListener("click", closeAdminReview);
     $("#adminReviewModal").addEventListener("click", (event) => { if (event.target === $("#adminReviewModal")) closeAdminReview(); });

@@ -33,3 +33,24 @@ test("teammate check-ins require both users to belong to the same team", () => {
   assert.match(schema, /v_own_team\s+is null[\s\S]*v_own_team\s*<>\s*v_target_team[\s\S]*TEAM_ACCESS_DENIED/i);
   assert.match(schema, /grant execute on function public\.get_study_team_checkins\(uuid, integer\) to authenticated/i);
 });
+
+test("reward catalog supports audiences, groups, per-user limits, and atomic redemption", () => {
+  assert.match(schema, /create table if not exists public\.reward_catalog/i);
+  assert.match(schema, /per_user_limit\s+integer\s+not null\s+default\s+1/i);
+  assert.match(schema, /audience_mode[\s\S]*'all'[\s\S]*'users'[\s\S]*'group'/i);
+  assert.match(schema, /create table if not exists public\.reward_groups/i);
+  assert.match(schema, /create table if not exists public\.reward_group_members/i);
+  assert.match(schema, /create table if not exists public\.reward_redemptions/i);
+  assert.match(schema, /create or replace function public\.get_available_rewards/i);
+  assert.match(schema, /create or replace function public\.redeem_reward[\s\S]*for update/i);
+  assert.match(schema, /REWARD_LIMIT_REACHED/i);
+  assert.match(schema, /INSUFFICIENT_COINS/i);
+});
+
+test("check-in rewards can only be written by the trusted service role and are capped", () => {
+  assert.match(schema, /create or replace function public\.record_checkin_server/i);
+  assert.match(schema, /auth\.role\(\)[\s\S]*service_role/i);
+  assert.match(schema, /p_xp\s*>\s*220[\s\S]*p_coin\s*>\s*50/i);
+  assert.match(schema, /revoke all on function public\.record_checkin\([\s\S]*from authenticated/i);
+  assert.match(schema, /grant execute on function public\.record_checkin_server\([\s\S]*to service_role/i);
+});
