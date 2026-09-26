@@ -23,6 +23,7 @@ test("study teams use invite codes, one-team membership, and security-definer ac
   assert.match(schema, /invite_code\s+text\s+not null\s+unique/i);
   assert.match(schema, /create table if not exists public\.study_team_members[\s\S]*unique\s*\(user_id\)/i);
   assert.match(schema, /create or replace function public\.create_study_team[\s\S]*security definer/i);
+  assert.match(schema, /extensions\.gen_random_bytes\(8\)/i);
   assert.match(schema, /create or replace function public\.join_study_team[\s\S]*TEAM_FULL/i);
   assert.match(schema, /create or replace function public\.leave_study_team[\s\S]*v_next_owner/i);
 });

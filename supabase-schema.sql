@@ -315,7 +315,7 @@ begin
   if char_length(trim(coalesce(p_nickname, ''))) not between 1 and 20 then raise exception 'INVALID_NICKNAME'; end if;
 
   loop
-    v_code := upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 8));
+    v_code := upper(substr(encode(extensions.gen_random_bytes(8), 'hex'), 1, 8));
     exit when not exists (select 1 from public.study_teams where invite_code = v_code);
     v_attempt := v_attempt + 1;
     if v_attempt >= 10 then raise exception 'INVITE_CODE_GENERATION_FAILED'; end if;
