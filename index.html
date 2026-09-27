@@ -1151,7 +1151,7 @@
       <p class="redemption-description" id="adminRedemptionDescription"></p>
       <label class="admin-review-field" for="adminRedemptionNote">
         审核说明
-        <textarea id="adminRedemptionNote" maxlength="500" placeholder="通过时可填写发放说明；拒绝时必须填写原因。"></textarea>
+        <textarea id="adminRedemptionNote" maxlength="500" placeholder="可选；留空时系统会自动记录默认说明。"></textarea>
         <span class="admin-review-count" id="adminRedemptionNoteCount">0 / 500</span>
       </label>
       <div class="redemption-review-actions" id="adminRedemptionReviewActions">
@@ -2475,7 +2475,6 @@
     async function reviewAdminRedemption(status) {
       if (!adminRedemptionTargetId) return;
       const note = $("#adminRedemptionNote").value.trim();
-      if (status === "rejected" && !note) return showToast("拒绝兑换时请填写原因", "error");
       const buttons = [$("#adminRedemptionApprove"), $("#adminRedemptionReject")];
       buttons.forEach((button) => { button.disabled = true; });
       try {

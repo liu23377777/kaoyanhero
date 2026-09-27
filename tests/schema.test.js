@@ -53,6 +53,9 @@ test("reward redemptions support optional approval with atomic refund on rejecti
   assert.match(schema, /review_note\s+text/i);
   assert.match(schema, /create or replace function public\.review_reward_redemption/i);
   assert.match(schema, /review_reward_redemption[\s\S]*for update/i);
+  assert.match(schema, /管理员审核通过/i);
+  assert.match(schema, /管理员审核未通过，兑换金币已退还/i);
+  assert.doesNotMatch(schema, /REJECTION_NOTE_REQUIRED/i);
   assert.match(schema, /p_status\s*=\s*'rejected'[\s\S]*set coin = coin \+ v_redemption\.coin_cost/i);
   assert.match(schema, /grant execute on function public\.review_reward_redemption[\s\S]*to service_role/i);
 });

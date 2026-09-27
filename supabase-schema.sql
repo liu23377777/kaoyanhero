@@ -732,13 +732,18 @@ security definer set search_path = public
 as $$
 declare
   v_redemption public.reward_redemptions%rowtype;
+  v_note text;
 begin
   if auth.role() <> 'service_role' then raise exception 'ADMIN_REQUIRED'; end if;
   if p_status not in ('fulfilled', 'rejected') then raise exception 'INVALID_REVIEW_STATUS'; end if;
-  if p_status = 'rejected' and char_length(trim(coalesce(p_note, ''))) = 0 then
-    raise exception 'REJECTION_NOTE_REQUIRED';
+  v_note := nullif(trim(coalesce(p_note, '')), '');
+  if v_note is null then
+    v_note := case
+      when p_status = 'fulfilled' then '管理员审核通过'
+      else '管理员审核未通过，兑换金币已退还'
+    end;
   end if;
-  if char_length(trim(coalesce(p_note, ''))) > 500 then raise exception 'REVIEW_NOTE_TOO_LONG'; end if;
+  if char_length(v_note) > 500 then raise exception 'REVIEW_NOTE_TOO_LONG'; end if;
 
   select * into v_redemption from public.reward_redemptions
     where id = p_redemption_id for update;
@@ -746,7 +751,7 @@ begin
   if v_redemption.status <> 'pending' then raise exception 'REDEMPTION_ALREADY_REVIEWED'; end if;
 
   update public.reward_redemptions
-    set status = p_status, review_note = trim(coalesce(p_note, '')), reviewed_at = now()
+    set status = p_status, review_note = v_note, reviewed_at = now()
     where id = v_redemption.id;
 
   if p_status = 'rejected' then
@@ -759,6 +764,7 @@ begin
     'id', v_redemption.id,
     'status', p_status,
     'refundedCoin', case when p_status = 'rejected' then v_redemption.coin_cost else 0 end,
+    'reviewNote', v_note,
     'reviewedAt', now()
   );
 end;

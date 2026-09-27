@@ -40,7 +40,7 @@ test("workload-aware rewards stay inside safe caps", () => {
   assert.ok(reward.coin <= 50);
 });
 
-test("reward approval only accepts final states and requires a note when rejected", () => {
+test("reward approval only accepts final states and supplies default notes", () => {
   assert.deepEqual(
     cloud._test.cleanRewardReviewDecision({ status: "fulfilled", note: "  已通过并安排发放  " }),
     { status: "fulfilled", note: "已通过并安排发放" },
@@ -53,9 +53,13 @@ test("reward approval only accepts final states and requires a note when rejecte
     () => cloud._test.cleanRewardReviewDecision({ status: "pending", note: "稍后处理" }),
     (error) => error.status === 400,
   );
-  assert.throws(
-    () => cloud._test.cleanRewardReviewDecision({ status: "rejected", note: "" }),
-    (error) => error.status === 400 && /原因/.test(error.message),
+  assert.deepEqual(
+    cloud._test.cleanRewardReviewDecision({ status: "fulfilled", note: "" }),
+    { status: "fulfilled", note: "管理员审核通过" },
+  );
+  assert.deepEqual(
+    cloud._test.cleanRewardReviewDecision({ status: "rejected", note: "" }),
+    { status: "rejected", note: "管理员审核未通过，兑换金币已退还" },
   );
 });
 

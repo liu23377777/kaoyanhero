@@ -148,13 +148,12 @@ function cleanReviewDecision(payload) {
 
 function cleanRewardReviewDecision(payload) {
   const status = String(payload?.status || "").trim();
-  const note = String(payload?.note || "").trim();
   if (!["fulfilled", "rejected"].includes(status)) {
     throw Object.assign(new Error("兑换审核结果必须是通过或拒绝"), { status: 400 });
   }
-  if (status === "rejected" && !note) {
-    throw Object.assign(new Error("拒绝兑换时请填写原因"), { status: 400 });
-  }
+  const note = String(payload?.note || "").trim() || (status === "fulfilled"
+    ? "管理员审核通过"
+    : "管理员审核未通过，兑换金币已退还");
   if (note.length > 500) throw Object.assign(new Error("审核说明不能超过 500 字"), { status: 400 });
   return { status, note };
 }
