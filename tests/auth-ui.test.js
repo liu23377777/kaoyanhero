@@ -73,6 +73,7 @@ test("signed-in members have a profile editor and admins can keep private notes"
   assert.match(html, /history\.pushState\([^)]*#profile/);
   assert.match(html, /location\.hash\s*===\s*"#profile"/);
   assert.doesNotMatch(html, /id="profileModal"[^>]*aria-modal="true"/);
+  assert.match(html, /profile-story-line">让你的每一次坚持，<\/span><span class="profile-story-line">都有一个名字。/);
   assert.match(html, /id="profileDisplayName"/);
   assert.match(html, /用户昵称用于全站展示，队内昵称仍可单独设置/);
   assert.match(html, /\/api\/user\/profile/);
