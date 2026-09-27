@@ -101,3 +101,57 @@ test("admin reward approval uses the service-role RPC for an atomic decision", a
     p_note: "信息不完整",
   });
 });
+
+test("admin redemption records include the member's private note", async (t) => {
+  const previous = {
+    url: process.env.SUPABASE_URL,
+    anon: process.env.SUPABASE_ANON_KEY,
+    service: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    fetch: global.fetch,
+  };
+  process.env.SUPABASE_URL = "https://project-ref.supabase.co";
+  process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
+  const requested = [];
+  global.fetch = async (url) => {
+    const requestUrl = String(url);
+    requested.push(requestUrl);
+    let body = [];
+    if (requestUrl.includes("/rest/v1/reward_redemptions")) body = [{
+      id: "33333333-3333-4333-8333-333333333333",
+      reward_id: "44444444-4444-4444-8444-444444444444",
+      user_id: "11111111-1111-4111-8111-111111111111",
+      coin_cost: 3,
+      status: "pending",
+      review_note: "",
+      reviewed_at: null,
+      created_at: "2026-09-27T01:37:00.000Z",
+    }];
+    else if (requestUrl.includes("/rest/v1/reward_catalog")) body = [{
+      id: "44444444-4444-4444-8444-444444444444",
+      title: "新手奖励",
+      description: "",
+      requires_review: true,
+    }];
+    else if (requestUrl.includes("/auth/v1/admin/users")) body = {
+      users: [{ id: "11111111-1111-4111-8111-111111111111", email: "1941173209@qq.com" }],
+    };
+    else if (requestUrl.includes("/rest/v1/admin_user_notes")) body = [{
+      user_id: "11111111-1111-4111-8111-111111111111",
+      note: "哈哈哈",
+    }];
+    return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  t.after(() => {
+    global.fetch = previous.fetch;
+    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
+    if (previous.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = previous.anon;
+    if (previous.service === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = previous.service;
+  });
+
+  const records = await cloud.adminListRewardRedemptions();
+
+  assert.equal(records[0].email, "1941173209@qq.com");
+  assert.equal(records[0].adminNote, "哈哈哈");
+  assert.ok(requested.some((url) => url.includes("/rest/v1/admin_user_notes")));
+});

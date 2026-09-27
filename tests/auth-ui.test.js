@@ -55,6 +55,9 @@ test("rewards have a member redemption view and admin publishing and grouping vi
   assert.match(html, /id="adminRedemptions"/);
   assert.match(html, /id="adminRedemptionModal"/);
   assert.match(html, /\/api\/admin\/reward-redemptions/);
+  assert.match(html, /function adminRedemptionMemberLabel\(item\)/);
+  assert.match(html, /`\$\{adminNote\}（\$\{email\}）`/);
+  assert.match(html, /兑换成员[\s\S]*adminRedemptionMemberLabel\(item\)/);
   assert.match(html, /留空时系统会自动记录默认说明/);
   assert.doesNotMatch(html, /拒绝兑换时请填写原因/);
 });

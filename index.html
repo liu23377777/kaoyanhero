@@ -2621,6 +2621,12 @@
       return ({ pending: "待审核", fulfilled: "已发放", rejected: "已拒绝", cancelled: "已取消" })[normalizedRedemptionStatus(status)] || "未知状态";
     }
 
+    function adminRedemptionMemberLabel(item) {
+      const email = String(item?.email || "(未知邮箱)").trim() || "(未知邮箱)";
+      const adminNote = String(item?.adminNote || "").trim();
+      return adminNote ? `${adminNote}（${email}）` : email;
+    }
+
     function renderAdminRedemptions() {
       const list = $("#adminRedemptions");
       const filter = $("#adminRedemptionFilter").value;
@@ -2632,7 +2638,7 @@
       list.innerHTML = visible.length ? visible.map((item) => {
         const status = normalizedRedemptionStatus(item.status);
         return `<article class="admin-redemption-row">
-          <div class="admin-redemption-main"><strong>${escapeHtml(item.rewardTitle)} · ${escapeHtml(item.email)}</strong><span>${escapeHtml(formatCloudDateTime(item.createdAt))} · 🪙 ${Number(item.coinCost) || 0} · ${item.requiresReview ? "人工审核" : "自动发放"}</span></div>
+          <div class="admin-redemption-main"><strong>${escapeHtml(item.rewardTitle)} · ${escapeHtml(adminRedemptionMemberLabel(item))}</strong><span>${escapeHtml(formatCloudDateTime(item.createdAt))} · 🪙 ${Number(item.coinCost) || 0} · ${item.requiresReview ? "人工审核" : "自动发放"}</span></div>
           <span class="redemption-status ${escapeHtml(status)}">${escapeHtml(redemptionStatusLabel(status))}</span>
           <button class="admin-redemption-view" type="button" data-redemption-id="${escapeHtml(item.id)}">查看详情${status === "pending" ? "并审核" : ""}</button>
         </article>`;
@@ -2663,7 +2669,7 @@
       $("#adminRedemptionTitle").textContent = status === "pending" ? "审核兑换申请" : "兑换记录详情";
       $("#adminRedemptionSubtitle").textContent = `${item.rewardTitle} · ${redemptionStatusLabel(status)}`;
       $("#adminRedemptionDetails").innerHTML = `
-        <div class="redemption-detail-cell"><span>兑换成员</span><strong>${escapeHtml(item.email)}</strong></div>
+        <div class="redemption-detail-cell"><span>兑换成员</span><strong>${escapeHtml(adminRedemptionMemberLabel(item))}</strong></div>
         <div class="redemption-detail-cell"><span>用户 ID</span><strong>${escapeHtml(item.userId)}</strong></div>
         <div class="redemption-detail-cell"><span>兑换时间</span><strong>${escapeHtml(formatCloudDateTime(item.createdAt))}</strong></div>
         <div class="redemption-detail-cell"><span>金币 / 发放方式</span><strong>🪙 ${Number(item.coinCost) || 0} · ${item.requiresReview ? "人工审核" : "自动发放"}</strong></div>`;
@@ -2845,7 +2851,7 @@
         if (!response.ok) throw new Error(data.error || "备注保存失败");
         closeAdminNote();
         showToast(note ? "管理员备注已保存" : "管理员备注已清除");
-        await Promise.all([loadAdminUsers(), loadAdminRewardGroups()]);
+        await Promise.all([loadAdminUsers(), loadAdminRewardGroups(), loadAdminRedemptions()]);
       } catch (error) {
         showToast(error.message || "备注保存失败", "error");
       } finally {

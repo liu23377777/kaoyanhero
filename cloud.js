@@ -988,13 +988,15 @@ async function adminCreateReward(payload) {
 }
 
 async function adminListRewardRedemptions() {
-  const [{ data: redemptions }, { data: rewards }, authUsers] = await Promise.all([
+  const [{ data: redemptions }, { data: rewards }, authUsers, { data: noteRows }] = await Promise.all([
     supabaseRequest(restPath("reward_redemptions", "select=id,reward_id,user_id,coin_cost,status,review_note,reviewed_at,created_at&order=created_at.desc&limit=2000"), { useServiceRole: true }),
     supabaseRequest(restPath("reward_catalog", "select=id,title,description,requires_review"), { useServiceRole: true }),
     adminListAuthUsers(),
+    requestAdminNotes(),
   ]);
   const rewardById = new Map((rewards || []).map((reward) => [reward.id, reward]));
   const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  const noteById = new Map((noteRows || []).map((item) => [item.user_id, item.note]));
   return (redemptions || []).map((item) => {
     const reward = rewardById.get(item.reward_id) || {};
     return {
@@ -1005,6 +1007,7 @@ async function adminListRewardRedemptions() {
       requiresReview: Boolean(reward.requires_review),
       userId: item.user_id,
       email: emailById.get(item.user_id) || "(未知邮箱)",
+      adminNote: noteById.get(item.user_id) || "",
       coinCost: Number(item.coin_cost || 0),
       status: item.status,
       reviewNote: item.review_note || "",
