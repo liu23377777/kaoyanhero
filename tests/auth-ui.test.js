@@ -55,6 +55,10 @@ test("rewards have a member redemption view and admin publishing and grouping vi
   assert.match(html, /id="adminRedemptions"/);
   assert.match(html, /id="adminRedemptionModal"/);
   assert.match(html, /\/api\/admin\/reward-redemptions/);
+  assert.match(html, /admin-tab active"[^>]*data-admin-tab="redemptions"/);
+  assert.match(html, /id="adminPendingNotice"[^>]*hidden/);
+  assert.match(html, /有 \$\{count\} 条奖励兑换等待审核/);
+  assert.match(html, /setAdminTab\("redemptions"\)[\s\S]*pendingAdminRedemptionCount\(\)/);
   assert.match(html, /function adminRedemptionMemberLabel\(item\)/);
   assert.match(html, /`\$\{adminNote\}（\$\{email\}）`/);
   assert.match(html, /兑换成员[\s\S]*adminRedemptionMemberLabel\(item\)/);
