@@ -657,6 +657,10 @@ const server = http.createServer(async (req, res) => {
       const session = await cloud.requireSession(req, res);
       return json(res, 200, await cloud.getUserState(session));
     }
+    if (req.method === "POST" && url.pathname === "/api/user/profile") {
+      const session = await cloud.requireSession(req, res);
+      return json(res, 200, { profile: await cloud.updateUserProfile(session, await readJson(req)) });
+    }
     if (req.method === "GET" && url.pathname === "/api/team") {
       const session = await cloud.requireSession(req, res);
       return json(res, 200, { team: await cloud.getStudyTeam(session) });
@@ -737,6 +741,13 @@ const server = http.createServer(async (req, res) => {
       const userId = segments[4];
       const review = await cloud.adminReviewUser(userId, await readJson(req));
       return json(res, 200, { ok: true, review });
+    }
+    if (req.method === "POST" && url.pathname.startsWith("/api/admin/users/") && url.pathname.endsWith("/note")) {
+      cloud.requireAdmin(req);
+      const segments = url.pathname.split("/");
+      const userId = segments[4];
+      const note = await cloud.adminUpdateUserNote(userId, await readJson(req));
+      return json(res, 200, { ok: true, note });
     }
     if (req.method === "POST" && url.pathname.startsWith("/api/admin/users/") && (url.pathname.endsWith("/approve") || url.pathname.endsWith("/revoke"))) {
       cloud.requireAdmin(req);

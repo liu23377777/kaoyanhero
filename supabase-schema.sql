@@ -5,6 +5,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null default '' check (char_length(display_name) <= 30),
   xp integer not null default 0 check (xp >= 0),
   coin integer not null default 0 check (coin >= 0),
   streak integer not null default 0 check (streak >= 0),
@@ -21,6 +22,7 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists approval_status text;
 alter table public.profiles add column if not exists approval_comment text;
 alter table public.profiles add column if not exists reviewed_at timestamptz;
+alter table public.profiles add column if not exists display_name text not null default '';
 
 do $$
 begin
@@ -36,6 +38,34 @@ begin
   else
     update public.profiles set approval_status = 'pending' where approval_status is null;
   end if;
+end;
+$$;
+
+create table if not exists public.admin_user_notes (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  note text not null default '' check (char_length(note) <= 100),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.update_my_profile(p_display_name text)
+returns jsonb
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_name text := trim(coalesce(p_display_name, ''));
+begin
+  if v_user is null then raise exception 'AUTH_REQUIRED'; end if;
+  if char_length(v_name) not between 1 and 30 then raise exception 'INVALID_DISPLAY_NAME'; end if;
+
+  insert into public.profiles(id, display_name)
+  values (v_user, v_name)
+  on conflict (id) do update
+    set display_name = excluded.display_name,
+        updated_at = now();
+
+  return jsonb_build_object('displayName', v_name);
 end;
 $$;
 
@@ -188,6 +218,7 @@ create table if not exists public.usage_counters (
 );
 
 alter table public.profiles enable row level security;
+alter table public.admin_user_notes enable row level security;
 alter table public.checkins enable row level security;
 alter table public.study_teams enable row level security;
 alter table public.study_team_members enable row level security;
@@ -777,6 +808,7 @@ grant execute on function public.record_checkin_server(uuid, text, jsonb, intege
 revoke all on function public.consume_ai_quota(integer) from public;
 grant execute on function public.consume_ai_quota(integer) to authenticated;
 revoke all on function public.assert_team_user_approved() from public;
+revoke all on function public.update_my_profile(text) from public;
 revoke all on function public.create_study_team(text, text) from public;
 revoke all on function public.join_study_team(text, text) from public;
 revoke all on function public.get_my_study_team() from public;
@@ -786,6 +818,7 @@ revoke all on function public.get_available_rewards() from public;
 revoke all on function public.redeem_reward(uuid) from public;
 revoke all on function public.review_reward_redemption(uuid, text, text) from public;
 grant execute on function public.create_study_team(text, text) to authenticated;
+grant execute on function public.update_my_profile(text) to authenticated;
 grant execute on function public.join_study_team(text, text) to authenticated;
 grant execute on function public.get_my_study_team() to authenticated;
 grant execute on function public.get_study_team_checkins(uuid, integer) to authenticated;
@@ -796,6 +829,7 @@ grant execute on function public.review_reward_redemption(uuid, text, text) to s
 
 grant usage on schema public to authenticated;
 grant select on public.profiles, public.checkins to authenticated;
+revoke all on public.admin_user_notes from public, anon, authenticated;
 grant select, insert, update on public.ai_preferences, public.habitica_connections to authenticated;
 grant select on public.usage_counters to authenticated;
 

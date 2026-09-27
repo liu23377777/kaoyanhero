@@ -44,6 +44,15 @@ test("requires a review comment for both approval outcomes", () => {
   );
 });
 
+test("validates member nicknames and optional administrator notes", () => {
+  assert.equal(cloud._test.cleanDisplayName("  上岸小刘  "), "上岸小刘");
+  assert.throws(() => cloud._test.cleanDisplayName(""), (error) => error.status === 400);
+  assert.throws(() => cloud._test.cleanDisplayName("勇".repeat(31)), (error) => error.status === 400);
+  assert.equal(cloud._test.cleanAdminNote("  朋友介绍的数学组成员  "), "朋友介绍的数学组成员");
+  assert.equal(cloud._test.cleanAdminNote(""), "");
+  assert.throws(() => cloud._test.cleanAdminNote("备".repeat(101)), (error) => error.status === 400);
+});
+
 test("detects an older profiles schema without review columns", () => {
   const missingColumn = Object.assign(new Error("Could not find the 'approval_status' column"), { upstream: true });
   assert.equal(cloud._test.missingApprovalSchema(missingColumn), true);
@@ -84,4 +93,54 @@ test("admin review persists the status, comment, and review time", async (t) => 
   assert.equal(body.approval_status, "rejected");
   assert.equal(body.approval_comment, "资料需要补充");
   assert.match(body.reviewed_at, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("member nicknames and private admin notes use separate persistence paths", async (t) => {
+  const previous = {
+    url: process.env.SUPABASE_URL,
+    anon: process.env.SUPABASE_ANON_KEY,
+    service: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    fetch: global.fetch,
+  };
+  process.env.SUPABASE_URL = "https://project-ref.supabase.co";
+  process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
+  const requests = [];
+  global.fetch = async (url, options) => {
+    requests.push({ url: String(url), options });
+    const body = String(url).includes("update_my_profile") ? JSON.stringify({ displayName: "上岸小刘" }) : "{}";
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  t.after(() => {
+    global.fetch = previous.fetch;
+    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
+    if (previous.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = previous.anon;
+    if (previous.service === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = previous.service;
+  });
+
+  const profile = await cloud.updateUserProfile(
+    { user: { id: "11111111-1111-4111-8111-111111111111" }, accessToken: "signed-user-token" },
+    { displayName: "  上岸小刘  " },
+  );
+  const note = await cloud.adminUpdateUserNote(
+    "11111111-1111-4111-8111-111111111111",
+    { note: "  朋友介绍 · 数学组  " },
+  );
+  const cleared = await cloud.adminUpdateUserNote(
+    "11111111-1111-4111-8111-111111111111",
+    { note: "" },
+  );
+
+  assert.deepEqual(profile, { displayName: "上岸小刘" });
+  assert.deepEqual(note, { note: "朋友介绍 · 数学组" });
+  assert.deepEqual(cleared, { note: "" });
+  assert.match(requests[0].url, /\/rest\/v1\/rpc\/update_my_profile$/);
+  assert.deepEqual(JSON.parse(requests[0].options.body), { p_display_name: "上岸小刘" });
+  assert.match(requests[1].url, /\/rest\/v1\/admin_user_notes\?on_conflict=user_id$/);
+  const noteBody = JSON.parse(requests[1].options.body);
+  assert.equal(noteBody.user_id, "11111111-1111-4111-8111-111111111111");
+  assert.equal(noteBody.note, "朋友介绍 · 数学组");
+  assert.match(noteBody.updated_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(requests[2].url, /\/rest\/v1\/admin_user_notes\?user_id=eq\.11111111-1111-4111-8111-111111111111$/);
+  assert.equal(requests[2].options.method, "DELETE");
 });

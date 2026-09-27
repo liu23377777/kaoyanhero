@@ -6,10 +6,21 @@ const path = require("node:path");
 const schema = fs.readFileSync(path.join(__dirname, "..", "supabase-schema.sql"), "utf8");
 
 test("profiles use a three-state review with pending as the default", () => {
+  assert.match(schema, /display_name\s+text/i);
+  assert.match(schema, /create table if not exists public\.admin_user_notes/i);
   assert.match(schema, /approval_status\s+text[\s\S]*default\s+'pending'/i);
   assert.match(schema, /approval_comment\s+text/i);
   assert.match(schema, /reviewed_at\s+timestamptz/i);
   assert.match(schema, /approval_status[\s\S]*in\s*\(\s*'pending'\s*,\s*'approved'\s*,\s*'rejected'\s*\)/i);
+});
+
+test("members can update a public nickname without exposing admin notes", () => {
+  assert.match(schema, /create or replace function public\.update_my_profile/i);
+  assert.match(schema, /char_length\(v_name\)[\s\S]*between 1 and 30/i);
+  assert.match(schema, /grant execute on function public\.update_my_profile\(text\) to authenticated/i);
+  assert.match(schema, /alter table public\.admin_user_notes enable row level security/i);
+  assert.match(schema, /revoke all on public\.admin_user_notes from public, anon, authenticated/i);
+  assert.doesNotMatch(schema, /create policy[^;]*on public\.admin_user_notes/is);
 });
 
 test("database functions reject check-ins until an account is approved", () => {

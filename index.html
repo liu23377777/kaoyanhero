@@ -92,6 +92,7 @@
     .reward-button { background: white; }
     .team-button:hover, .reward-button:hover { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
     .account-button { min-width: 84px; padding: 9px 13px; border: 1.5px solid var(--ink); border-radius: 999px; background: var(--ink); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
+    .account-button:hover { background: #263452; transform: translateY(-1px); }
 
     .date-chip {
       padding: 9px 14px;
@@ -548,11 +549,13 @@
     .admin-user-status.approved { background: rgba(47,155,123,.14); color: var(--mint); }
     .admin-user-status.rejected { background: rgba(184,58,48,.12); color: #a6322a; }
     .admin-user-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .admin-approve, .admin-reject, .admin-edit-review, .admin-revoke { padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 800; }
+    .admin-approve, .admin-reject, .admin-edit-review, .admin-revoke, .admin-note-button { padding: 7px 12px; border: 0; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 800; }
     .admin-approve { background: var(--mint); color: white; }
     .admin-reject { background: #b83a30; color: white; }
     .admin-edit-review { background: #edf0fb; color: var(--blue); }
     .admin-revoke { background: var(--paper-deep); color: var(--ink); }
+    .admin-note-button { background: #fff1c9; color: #765400; }
+    .admin-user-note { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; padding: 3px 8px; border-radius: 999px; background: #fff4d8; color: #755500; font-size: 10px; font-weight: 800; overflow-wrap: anywhere; }
     .admin-user-review { flex-basis: 100%; display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--paper-deep); color: #485168; font-size: 11px; line-height: 1.55; }
     .admin-user-review strong { flex: 0 0 auto; color: var(--ink); }
     .admin-user-review span { overflow-wrap: anywhere; }
@@ -647,6 +650,30 @@
     .reward-modal { position: fixed; inset: 0; z-index: 34; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
     .reward-modal.open { display: flex; }
     .reward-dialog { width: min(860px, 100%); max-height: 88vh; overflow-y: auto; border: 2px solid var(--ink); border-radius: 26px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
+    .profile-modal { position: fixed; inset: 0; z-index: 36; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(8px); }
+    .profile-modal.open { display: flex; }
+    .profile-dialog { width: min(560px, 100%); overflow: hidden; border: 2px solid var(--ink); border-radius: 26px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
+    .profile-close { position: absolute; top: 15px; right: 15px; z-index: 2; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.9); color: var(--ink); cursor: pointer; font-size: 18px; }
+    .profile-hero { display: flex; align-items: center; gap: 16px; padding: 28px; background: var(--ink); color: white; }
+    .profile-avatar { flex: 0 0 auto; width: 64px; height: 64px; display: grid; place-items: center; border: 2px solid white; border-radius: 20px; background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 var(--orange); font-size: 28px; font-weight: 900; transform: rotate(-2deg); }
+    .profile-identity { min-width: 0; }
+    .profile-kicker { display: block; margin-bottom: 5px; color: var(--yellow); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .profile-identity h2 { margin: 0 0 5px; font-size: 24px; overflow-wrap: anywhere; }
+    .profile-identity p { margin: 0; color: rgba(255,255,255,.62); font-size: 11px; overflow-wrap: anywhere; }
+    .profile-body { padding: 24px 28px 28px; }
+    .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 20px; }
+    .profile-stat { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-deep); }
+    .profile-stat span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; }
+    .profile-stat strong { font-size: 17px; }
+    .profile-field { display: grid; gap: 7px; color: var(--ink); font-size: 12px; font-weight: 900; }
+    .profile-field input { width: 100%; min-height: 48px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 13px; background: white; color: var(--ink); outline: 0; }
+    .profile-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(71,107,214,.1); }
+    .profile-help { margin: 8px 0 18px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .profile-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .profile-save, .profile-logout { padding: 11px 17px; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 900; }
+    .profile-save { border: 0; background: var(--blue); color: white; box-shadow: 3px 3px 0 var(--ink); }
+    .profile-save:disabled { opacity: .6; cursor: wait; }
+    .profile-logout { border: 1.5px solid #b83a30; background: transparent; color: #a6322a; }
     .reward-vault-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 27px 70px 25px 27px; overflow: hidden; background: var(--ink); color: white; position: relative; }
     .reward-vault-head::after { content: "✦"; position: absolute; right: 24px; bottom: -24px; color: rgba(255,200,87,.16); font-size: 112px; line-height: 1; }
     .reward-vault-head h2 { margin: 0 0 7px; font-size: 25px; }
@@ -775,6 +802,9 @@
       .invite-card { text-align: left; }
       .team-member-main { align-items: flex-start; flex-wrap: wrap; }
       .team-record-button { margin-left: 49px; }
+      .profile-hero { padding: 24px 20px; }
+      .profile-body { padding: 20px; }
+      .profile-stats { grid-template-columns: 1fr; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1054,6 +1084,35 @@
     </div>
   </div>
 
+  <div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+    <div class="profile-dialog">
+      <button class="profile-close" id="profileClose" type="button" aria-label="关闭">×</button>
+      <div class="profile-hero">
+        <div class="profile-avatar" id="profileAvatar" aria-hidden="true">勇</div>
+        <div class="profile-identity">
+          <span class="profile-kicker">My quest profile</span>
+          <h2 id="profileTitle">个人资料</h2>
+          <p id="profileEmail">尚未登录</p>
+        </div>
+      </div>
+      <form class="profile-body" id="profileForm">
+        <div class="profile-stats" aria-label="学习数据概览">
+          <div class="profile-stat"><span>累计经验</span><strong id="profileXp">0 XP</strong></div>
+          <div class="profile-stat"><span>勇者金币</span><strong id="profileCoin">🪙 0</strong></div>
+          <div class="profile-stat"><span>连续打卡</span><strong id="profileStreak">0 天</strong></div>
+        </div>
+        <label class="profile-field" for="profileDisplayName">用户昵称
+          <input id="profileDisplayName" name="displayName" maxlength="30" required autocomplete="nickname" placeholder="例如：上岸小刘">
+        </label>
+        <p class="profile-help">用户昵称用于全站展示，队内昵称仍可单独设置。管理员备注仅管理员可见，不会在这里展示。</p>
+        <div class="profile-actions">
+          <button class="profile-logout" id="profileLogout" type="button">退出登录</button>
+          <button class="profile-save" id="profileSave" type="submit">保存昵称</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="admin-modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
     <div class="admin-dialog">
       <button class="admin-close" id="adminClose" type="button" aria-label="关闭">×</button>
@@ -1143,6 +1202,22 @@
     </form>
   </div>
 
+  <div class="admin-review-modal" id="adminNoteModal" role="dialog" aria-modal="true" aria-labelledby="adminNoteTitle">
+    <form class="admin-review-dialog" id="adminNoteForm">
+      <h3 id="adminNoteTitle">设置用户备注</h3>
+      <p id="adminNoteUser">备注类似微信备注，仅管理员可见，不会展示给用户或队友。</p>
+      <label class="admin-review-field" for="adminNoteInput">
+        管理员备注
+        <textarea id="adminNoteInput" maxlength="100" placeholder="例如：张老师介绍 · 数学一冲刺组"></textarea>
+        <span class="admin-review-count" id="adminNoteCount">0 / 100</span>
+      </label>
+      <div class="admin-review-actions">
+        <button class="admin-review-cancel" id="adminNoteCancel" type="button">取消</button>
+        <button class="admin-review-submit" id="adminNoteSubmit" type="submit">保存备注</button>
+      </div>
+    </form>
+  </div>
+
   <div class="admin-review-modal" id="adminRedemptionModal" role="dialog" aria-modal="true" aria-labelledby="adminRedemptionTitle">
     <div class="admin-review-dialog">
       <h3 id="adminRedemptionTitle">兑换记录详情</h3>
@@ -1176,12 +1251,14 @@
     let authMode = "login";
     let appConfig = { cloudMode: false, googleAuth: false, githubAuth: false, dailyAiRequestLimit: 10 };
     let currentUser = null;
+    let userProfile = { displayName: "" };
     let accountApproval = { status: "approved", comment: "", reviewedAt: null };
     let accountApproved = true;
     let adminAuthenticated = false;
     let adminUsersById = new Map();
     let adminRewardGroups = [];
     let adminReviewTargetId = "";
+    let adminNoteTargetId = "";
     let adminRedemptions = [];
     let adminRedemptionTargetId = "";
     let studyTeam = null;
@@ -1196,6 +1273,7 @@
       toast: $("#toast"), emptyReview: $("#emptyReview"), resultReview: $("#resultReview"), reviewBody: $("#reviewBody"),
       rewardStrip: $("#rewardStrip"), modelBadge: $("#modelBadge"), historyList: $("#historyList"),
       accountButton: $("#accountButton"), authModal: $("#authModal"), authForm: $("#authForm"), authPrimary: $("#authPrimary"),
+      profileModal: $("#profileModal"), profileForm: $("#profileForm"), profileDisplayName: $("#profileDisplayName"),
       teamModal: $("#teamModal"), teamContent: $("#teamContent"),
       rewardModal: $("#rewardModal"), rewardGrid: $("#rewardGrid"), rewardWallet: $("#rewardWallet"),
       habiticaSetup: $("#habiticaSetup"), habiticaForm: $("#habiticaForm"), habiticaConnect: $("#habiticaConnect")
@@ -1222,6 +1300,11 @@
       $("#streak").textContent = `🔥 ${state.streak} 天连胜`;
       $("#xpText").textContent = `${currentXp} / 500 XP`;
       $("#xpProgress").style.width = `${(currentXp / 500) * 100}%`;
+      if ($("#profileXp")) {
+        $("#profileXp").textContent = `${state.xp.toLocaleString("zh-CN")} XP`;
+        $("#profileCoin").textContent = `🪙 ${state.coin.toLocaleString("zh-CN")}`;
+        $("#profileStreak").textContent = `${state.streak} 天`;
+      }
       renderHistory();
     }
 
@@ -1260,6 +1343,7 @@
 
     function applyCloudState(data) {
       const profile = data?.profile || {};
+      userProfile.displayName = String(profile.displayName || "").trim();
       state.xp = Number(profile.xp || 0);
       state.coin = Number(profile.coin || 0);
       state.streak = Number(profile.streak || 0);
@@ -1275,6 +1359,7 @@
         reviewedAt: profile.reviewedAt || null,
       };
       accountApproved = status === "approved";
+      updateAccountUI();
       setApprovalBanner(appConfig.cloudMode && currentUser ? accountApproval : null);
       if (data?.preferences) {
         localStorage.setItem("kaoyanAiProvider", data.preferences.provider || "glm");
@@ -1697,8 +1782,88 @@
 
     function updateAccountUI() {
       const session = getSession();
-      elements.accountButton.textContent = session?.email ? `👤 ${session.email.split("@")[0]}` : "登录 / 注册";
-      elements.accountButton.title = session?.email ? `已登录：${session.email}；点击可退出` : appConfig.cloudMode ? "登录云端账户" : "登录本机账户";
+      const displayName = String(userProfile.displayName || session?.displayName || "").trim();
+      const label = displayName || session?.email?.split("@")[0] || "";
+      elements.accountButton.textContent = session?.email ? `👤 ${label}` : "登录 / 注册";
+      elements.accountButton.title = session?.email ? `已登录：${session.email}；点击打开个人资料` : appConfig.cloudMode ? "登录云端账户" : "登录本机账户";
+    }
+
+    function renderProfile() {
+      const session = getSession();
+      if (!session?.email) return;
+      const fallbackName = session.email.split("@")[0];
+      const displayName = String(userProfile.displayName || session.displayName || "").trim();
+      const shownName = displayName || fallbackName;
+      $("#profileTitle").textContent = shownName;
+      $("#profileEmail").textContent = session.email;
+      $("#profileAvatar").textContent = shownName.slice(0, 1).toUpperCase() || "勇";
+      elements.profileDisplayName.value = displayName || fallbackName;
+      updateDashboard();
+    }
+
+    function openProfile() {
+      if (!getSession()?.email) return openAuth();
+      renderProfile();
+      elements.profileModal.classList.add("open");
+      requestAnimationFrame(() => elements.profileDisplayName.focus());
+    }
+
+    function closeProfile() {
+      elements.profileModal.classList.remove("open");
+      elements.profileForm.reset();
+    }
+
+    async function handleProfileSubmit(event) {
+      event.preventDefault();
+      const displayName = elements.profileDisplayName.value.trim();
+      if (!displayName || displayName.length > 30) return showToast("用户昵称应为 1 到 30 个字符", "error");
+      const submit = $("#profileSave");
+      submit.disabled = true;
+      submit.textContent = "保存中…";
+      try {
+        if (appConfig.cloudMode) {
+          const response = await fetch("/api/user/profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "昵称保存失败");
+          userProfile.displayName = data.profile?.displayName || displayName;
+        } else {
+          const session = getSession();
+          localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ ...session, displayName }));
+          userProfile.displayName = displayName;
+        }
+        updateAccountUI();
+        renderProfile();
+        showToast("用户昵称已保存");
+      } catch (error) {
+        showToast(error.message || "昵称保存失败", "error");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "保存昵称";
+      }
+    }
+
+    async function logoutAccount() {
+      if (appConfig.cloudMode) {
+        await fetch("/api/auth/logout", { method: "POST" });
+        currentUser = null;
+        studyTeam = null;
+        accountApproval = { status: "approved", comment: "", reviewedAt: null };
+        accountApproved = true;
+        setApprovalBanner(null);
+        Object.assign(state, { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] });
+        updateDashboard();
+        loadIntegrations();
+      } else {
+        localStorage.removeItem(AUTH_SESSION_KEY);
+      }
+      userProfile = { displayName: "" };
+      closeProfile();
+      updateAccountUI();
+      showToast("已退出账户");
     }
 
     function closeAuth() {
@@ -1719,23 +1884,7 @@
 
     async function openAuth(mode = "login", { force = false } = {}) {
       if (!force && getSession()?.email) {
-        if (window.confirm(appConfig.cloudMode ? "要退出当前云端账户吗？" : "要退出当前本机账户吗？")) {
-          if (appConfig.cloudMode) {
-            await fetch("/api/auth/logout", { method: "POST" });
-            currentUser = null;
-            studyTeam = null;
-            accountApproval = { status: "approved", comment: "", reviewedAt: null };
-            accountApproved = true;
-            setApprovalBanner(null);
-            Object.assign(state, { xp: 0, coin: 0, streak: 0, lastDate: "", history: [] });
-            updateDashboard();
-            loadIntegrations();
-          } else {
-            localStorage.removeItem(AUTH_SESSION_KEY);
-          }
-          updateAccountUI();
-          showToast("已退出账户");
-        }
+        openProfile();
         return;
       }
       elements.authModal.classList.add("open");
@@ -1964,7 +2113,7 @@
     }
 
     function defaultTeamNickname() {
-      return String(currentUser?.email || "勇者").split("@")[0].slice(0, 20) || "勇者";
+      return String(userProfile.displayName || currentUser?.email || "勇者").split("@")[0].slice(0, 20) || "勇者";
     }
 
     function renderTeamSetup() {
@@ -2242,6 +2391,7 @@
 
     function closeAdminPanel() {
       closeAdminReview();
+      closeAdminNote();
       closeAdminRedemption();
       $("#adminModal").classList.remove("open");
     }
@@ -2306,7 +2456,11 @@
         const users = Array.isArray(data.users) ? data.users : [];
         adminUsersById = new Map(users.map((user) => [user.id, user]));
         $("#adminGroupMembers").innerHTML = users.length
-          ? users.map((user) => `<label class="admin-member-option"><input type="checkbox" name="memberId" value="${escapeHtml(user.id)}"><span>${escapeHtml(user.email)}<br>${escapeHtml(user.id)}</span></label>`).join("")
+          ? users.map((user) => {
+              const label = user.adminNote || user.displayName || user.email;
+              const detail = [user.displayName && user.displayName !== label ? `昵称：${user.displayName}` : "", user.email, user.id].filter(Boolean).join(" · ");
+              return `<label class="admin-member-option"><input type="checkbox" name="memberId" value="${escapeHtml(user.id)}"><span>${escapeHtml(label)}<br>${escapeHtml(detail)}</span></label>`;
+            }).join("")
           : '<div class="admin-empty">暂无可分组用户</div>';
         const counts = users.reduce((result, user) => {
           const status = ["pending", "approved", "rejected"].includes(user.approvalStatus)
@@ -2531,6 +2685,8 @@
         : (user.approved ? "approved" : "pending");
       const statusLabel = { pending: "待审核", approved: "已通过", rejected: "未通过" }[status];
       const comment = String(user.approvalComment || "").trim();
+      const displayName = String(user.displayName || "").trim();
+      const adminNote = String(user.adminNote || "").trim();
       const reviewed = formatReviewDate(user.reviewedAt);
       const reviewLine = status === "pending" ? "" : `
         <div class="admin-user-review">
@@ -2554,12 +2710,14 @@
       return `
         <div class="admin-user-row" data-user-id="${escapeHtml(user.id)}">
           <div class="admin-user-meta">
-            <strong>${escapeHtml(user.email)}</strong>
-            <small>注册于 ${escapeHtml(formatCloudDate(user.createdAt))} · 经验 ${Number(user.xp) || 0} · 连胜 ${Number(user.streak) || 0}</small>
+            <strong>${escapeHtml(displayName || user.email)}</strong>
+            ${adminNote ? `<span class="admin-user-note">备注：${escapeHtml(adminNote)}</span>` : ""}
+            <small>${displayName ? `${escapeHtml(user.email)} · ` : ""}注册于 ${escapeHtml(formatCloudDate(user.createdAt))} · 经验 ${Number(user.xp) || 0} · 连胜 ${Number(user.streak) || 0}</small>
           </div>
           <span class="admin-user-status ${status}">${statusLabel}</span>
           <div class="admin-user-actions">
             <button class="admin-user-view" type="button" data-action="checkins">查看打卡记录</button>
+            <button class="admin-note-button" type="button" data-action="note">${adminNote ? "修改备注" : "添加备注"}</button>
             ${reviewActions}
           </div>
           ${reviewLine}
@@ -2591,6 +2749,51 @@
       $("#adminReviewModal").classList.remove("open");
       $("#adminReviewForm").reset();
       $("#adminReviewCount").textContent = "0 / 500";
+    }
+
+    function openAdminNote(userId) {
+      const user = adminUsersById.get(userId);
+      if (!user) return;
+      adminNoteTargetId = userId;
+      const identity = user.displayName ? `${user.displayName} · ${user.email}` : user.email;
+      $("#adminNoteUser").textContent = `${identity}。备注类似微信备注，仅管理员可见。`;
+      $("#adminNoteInput").value = user.adminNote || "";
+      $("#adminNoteCount").textContent = `${String(user.adminNote || "").length} / 100`;
+      $("#adminNoteModal").classList.add("open");
+      $("#adminNoteInput").focus();
+    }
+
+    function closeAdminNote() {
+      adminNoteTargetId = "";
+      $("#adminNoteModal").classList.remove("open");
+      $("#adminNoteForm").reset();
+      $("#adminNoteCount").textContent = "0 / 100";
+    }
+
+    async function handleAdminNoteSubmit(event) {
+      event.preventDefault();
+      if (!adminNoteTargetId) return;
+      const note = $("#adminNoteInput").value.trim();
+      const submit = $("#adminNoteSubmit");
+      submit.disabled = true;
+      submit.textContent = "保存中…";
+      try {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(adminNoteTargetId)}/note`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "备注保存失败");
+        closeAdminNote();
+        showToast(note ? "管理员备注已保存" : "管理员备注已清除");
+        await Promise.all([loadAdminUsers(), loadAdminRewardGroups()]);
+      } catch (error) {
+        showToast(error.message || "备注保存失败", "error");
+      } finally {
+        submit.disabled = false;
+        submit.textContent = "保存备注";
+      }
     }
 
     async function handleAdminReviewSubmit(event) {
@@ -2676,6 +2879,10 @@
       }
       if (action === "review") {
         openAdminReview(userId, button.dataset.reviewStatus);
+        return;
+      }
+      if (action === "note") {
+        openAdminNote(userId);
       }
     }
 
@@ -2710,6 +2917,10 @@
     ["dragleave", "drop"].forEach((name) => elements.uploadZone.addEventListener(name, (event) => { event.preventDefault(); elements.uploadZone.classList.remove("dragover"); }));
     elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
     elements.accountButton.addEventListener("click", () => openAuth());
+    $("#profileClose").addEventListener("click", closeProfile);
+    elements.profileModal.addEventListener("click", (event) => { if (event.target === elements.profileModal) closeProfile(); });
+    elements.profileForm.addEventListener("submit", handleProfileSubmit);
+    $("#profileLogout").addEventListener("click", logoutAccount);
     elements.historyList.addEventListener("click", (event) => {
       const button = event.target.closest("[data-history-id]");
       if (!button) return;
@@ -2767,6 +2978,12 @@
     $("#adminReviewForm").addEventListener("submit", handleAdminReviewSubmit);
     $("#adminReviewComment").addEventListener("input", (event) => {
       $("#adminReviewCount").textContent = `${event.target.value.length} / 500`;
+    });
+    $("#adminNoteCancel").addEventListener("click", closeAdminNote);
+    $("#adminNoteModal").addEventListener("click", (event) => { if (event.target === $("#adminNoteModal")) closeAdminNote(); });
+    $("#adminNoteForm").addEventListener("submit", handleAdminNoteSubmit);
+    $("#adminNoteInput").addEventListener("input", (event) => {
+      $("#adminNoteCount").textContent = `${event.target.value.length} / 100`;
     });
     window.addEventListener("hashchange", () => { if (location.hash === "#admin") openAdminPanel(); });
 

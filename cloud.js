@@ -158,6 +158,23 @@ function cleanRewardReviewDecision(payload) {
   return { status, note };
 }
 
+function cleanDisplayName(value) {
+  const name = String(value || "").trim();
+  if (name.length < 1 || name.length > 30) {
+    throw Object.assign(new Error("用户昵称应为 1 到 30 个字符"), { status: 400 });
+  }
+  if (/[\u0000-\u001f\u007f]/.test(name)) {
+    throw Object.assign(new Error("用户昵称包含不支持的字符"), { status: 400 });
+  }
+  return name;
+}
+
+function cleanAdminNote(value) {
+  const note = String(value || "").trim();
+  if (note.length > 100) throw Object.assign(new Error("管理员备注不能超过 100 字"), { status: 400 });
+  return note;
+}
+
 async function signUp(req, res, payload) {
   const email = cleanEmail(payload?.email);
   const password = cleanPassword(payload?.password);
@@ -278,33 +295,67 @@ function missingApprovalSchema(error) {
     && ["approval_status", "approval_comment", "reviewed_at"].some((column) => message.includes(column));
 }
 
+function missingProfileIdentitySchema(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return error?.upstream === true
+    && ["display_name", "admin_user_notes", "update_my_profile"].some((column) => message.includes(column));
+}
+
 async function requestOwnProfile(userId, accessToken) {
   try {
     return await supabaseRequest(
-      restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approval_status,approval_comment,reviewed_at`),
+      restPath("profiles", `id=eq.${userId}&select=id,display_name,xp,coin,streak,last_date,approval_status,approval_comment,reviewed_at`),
       { accessToken },
     );
   } catch (error) {
-    if (!missingApprovalSchema(error)) throw error;
-    return supabaseRequest(
-      restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approved`),
-      { accessToken },
-    );
+    if (!missingProfileIdentitySchema(error) && !missingApprovalSchema(error)) throw error;
+    try {
+      return await supabaseRequest(
+        restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approval_status,approval_comment,reviewed_at`),
+        { accessToken },
+      );
+    } catch (legacyError) {
+      if (!missingApprovalSchema(legacyError)) throw legacyError;
+      return supabaseRequest(
+        restPath("profiles", `id=eq.${userId}&select=id,xp,coin,streak,last_date,approved`),
+        { accessToken },
+      );
+    }
   }
 }
 
 async function requestAdminProfiles() {
   try {
     return await supabaseRequest(
-      restPath("profiles", "select=id,xp,coin,streak,approval_status,approval_comment,reviewed_at,created_at&order=created_at.desc&limit=500"),
+      restPath("profiles", "select=id,display_name,xp,coin,streak,approval_status,approval_comment,reviewed_at,created_at&order=created_at.desc&limit=500"),
       { useServiceRole: true },
     );
   } catch (error) {
-    if (!missingApprovalSchema(error)) throw error;
-    return supabaseRequest(
-      restPath("profiles", "select=id,xp,coin,streak,approved,created_at&order=created_at.desc&limit=500"),
+    if (!missingProfileIdentitySchema(error) && !missingApprovalSchema(error)) throw error;
+    try {
+      return await supabaseRequest(
+        restPath("profiles", "select=id,xp,coin,streak,approval_status,approval_comment,reviewed_at,created_at&order=created_at.desc&limit=500"),
+        { useServiceRole: true },
+      );
+    } catch (legacyError) {
+      if (!missingApprovalSchema(legacyError)) throw legacyError;
+      return supabaseRequest(
+        restPath("profiles", "select=id,xp,coin,streak,approved,created_at&order=created_at.desc&limit=500"),
+        { useServiceRole: true },
+      );
+    }
+  }
+}
+
+async function requestAdminNotes() {
+  try {
+    return await supabaseRequest(
+      restPath("admin_user_notes", "select=user_id,note&limit=500"),
       { useServiceRole: true },
     );
+  } catch (error) {
+    if (missingProfileIdentitySchema(error)) return { data: [] };
+    throw error;
   }
 }
 
@@ -319,6 +370,7 @@ async function getUserState(session) {
   const approval = approvalView(profile);
   return {
     profile: {
+      displayName: String(profile.display_name || "").trim(),
       xp: Number(profile.xp || 0),
       coin: Number(profile.coin || 0),
       streak: Number(profile.streak || 0),
@@ -344,6 +396,23 @@ async function getUserState(session) {
     })),
     preferences: preferences.data?.[0] || null,
   };
+}
+
+async function updateUserProfile(session, payload) {
+  const displayName = cleanDisplayName(payload?.displayName);
+  try {
+    const { data } = await supabaseRequest("/rest/v1/rpc/update_my_profile", {
+      method: "POST",
+      accessToken: session.accessToken,
+      body: { p_display_name: displayName },
+    });
+    return { displayName: String(data?.displayName || displayName) };
+  } catch (error) {
+    if (missingProfileIdentitySchema(error)) {
+      throw Object.assign(new Error("个人资料字段尚未升级，请先执行最新的 supabase-schema.sql"), { status: 503 });
+    }
+    throw error;
+  }
 }
 
 async function savePreferences(session, provider, options) {
@@ -672,16 +741,20 @@ async function adminListAuthUsers() {
 }
 
 async function adminListUsers() {
-  const [{ data: profileRows }, authUsers] = await Promise.all([
+  const [{ data: profileRows }, authUsers, { data: noteRows }] = await Promise.all([
     requestAdminProfiles(),
     adminListAuthUsers(),
+    requestAdminNotes(),
   ]);
   const emailById = new Map(authUsers.map((user) => [user.id, user.email]));
+  const noteById = new Map((noteRows || []).map((item) => [item.user_id, item.note]));
   return (profileRows || []).map((row) => {
     const approval = approvalView(row);
     return {
       id: row.id,
       email: emailById.get(row.id) || "(未知邮箱)",
+      displayName: String(row.display_name || "").trim(),
+      adminNote: String(noteById.get(row.id) || "").trim(),
       approved: approval.approved,
       approvalStatus: approval.status,
       approvalComment: approval.comment,
@@ -692,6 +765,33 @@ async function adminListUsers() {
       createdAt: row.created_at,
     };
   });
+}
+
+async function adminUpdateUserNote(userId, payload) {
+  const id = cleanUserId(userId);
+  const note = cleanAdminNote(payload?.note);
+  try {
+    if (note) {
+      await supabaseRequest(restPath("admin_user_notes", "on_conflict=user_id"), {
+        method: "POST",
+        useServiceRole: true,
+        prefer: "resolution=merge-duplicates,return=minimal",
+        body: { user_id: id, note, updated_at: new Date().toISOString() },
+      });
+    } else {
+      await supabaseRequest(restPath("admin_user_notes", `user_id=eq.${encodeURIComponent(id)}`), {
+        method: "DELETE",
+        useServiceRole: true,
+        prefer: "return=minimal",
+      });
+    }
+  } catch (error) {
+    if (missingProfileIdentitySchema(error)) {
+      throw Object.assign(new Error("管理员备注字段尚未升级，请先执行最新的 supabase-schema.sql"), { status: 503 });
+    }
+    throw error;
+  }
+  return { note };
 }
 
 function cleanUserId(userId) {
@@ -937,6 +1037,7 @@ module.exports = {
   requireSession,
   signOut,
   getUserState,
+  updateUserProfile,
   savePreferences,
   assertWithinDailyLimit,
   recordCheckin,
@@ -956,6 +1057,7 @@ module.exports = {
   isAdminRequest,
   requireAdmin,
   adminListUsers,
+  adminUpdateUserNote,
   adminReviewUser,
   adminSetApproval,
   adminListUserCheckins,
@@ -965,5 +1067,5 @@ module.exports = {
   adminReviewRewardRedemption,
   adminListRewardGroups,
   adminCreateRewardGroup,
-  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, cleanRewardReviewDecision, missingApprovalSchema, cleanTeamText, cleanInviteCode, translateTeamError, translateRewardError, parseRecipientIds },
+  _test: { parseCookies, encryptSecret, decryptSecret, approvalView, cleanReviewDecision, cleanRewardReviewDecision, cleanDisplayName, cleanAdminNote, missingApprovalSchema, missingProfileIdentitySchema, cleanTeamText, cleanInviteCode, translateTeamError, translateRewardError, parseRecipientIds },
 };

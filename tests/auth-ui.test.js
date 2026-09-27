@@ -65,3 +65,13 @@ test("history rows can reopen complete AI evaluations and show same-day times", 
   assert.match(html, /formatCloudDateTime/);
   assert.match(html, /showHistoricalReview/);
 });
+
+test("signed-in members have a profile editor and admins can keep private notes", () => {
+  assert.match(html, /id="profileModal"/);
+  assert.match(html, /id="profileDisplayName"/);
+  assert.match(html, /用户昵称用于全站展示，队内昵称仍可单独设置/);
+  assert.match(html, /\/api\/user\/profile/);
+  assert.match(html, /id="adminNoteModal"/);
+  assert.match(html, /\/api\/admin\/users\/[^`]+\/note/);
+  assert.match(html, /仅管理员可见/);
+});
