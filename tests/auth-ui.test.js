@@ -68,6 +68,11 @@ test("history rows can reopen complete AI evaluations and show same-day times", 
 
 test("signed-in members have a profile editor and admins can keep private notes", () => {
   assert.match(html, /id="profileModal"/);
+  assert.match(html, /class="profile-page"/);
+  assert.match(html, /body\.profile-open\s*>\s*\.shell/);
+  assert.match(html, /history\.pushState\([^)]*#profile/);
+  assert.match(html, /location\.hash\s*===\s*"#profile"/);
+  assert.doesNotMatch(html, /id="profileModal"[^>]*aria-modal="true"/);
   assert.match(html, /id="profileDisplayName"/);
   assert.match(html, /用户昵称用于全站展示，队内昵称仍可单独设置/);
   assert.match(html, /\/api\/user\/profile/);

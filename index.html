@@ -461,6 +461,8 @@
 
     body.auth-open { overflow: hidden; }
     body.auth-open > .shell { display: none; }
+    body.profile-open { overflow: hidden; }
+    body.profile-open > .shell { display: none; }
     .auth-page { display: none; min-height: 100dvh; padding: clamp(18px, 4vw, 52px); overflow-y: auto; background: radial-gradient(circle at 10% 15%, rgba(255,200,87,.24), transparent 28rem), radial-gradient(circle at 92% 86%, rgba(71,107,214,.2), transparent 31rem), #111a32; }
     .auth-page.open { display: grid; place-items: center; }
     .auth-dialog { width: min(1030px, 100%); min-height: min(700px, calc(100dvh - 64px)); display: grid; grid-template-columns: minmax(300px, .88fr) minmax(420px, 1.12fr); overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 30px; background: var(--paper); box-shadow: 0 36px 100px rgba(4,9,24,.34); }
@@ -650,17 +652,29 @@
     .reward-modal { position: fixed; inset: 0; z-index: 34; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(7px); }
     .reward-modal.open { display: flex; }
     .reward-dialog { width: min(860px, 100%); max-height: 88vh; overflow-y: auto; border: 2px solid var(--ink); border-radius: 26px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
-    .profile-modal { position: fixed; inset: 0; z-index: 36; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(12,17,30,.72); backdrop-filter: blur(8px); }
-    .profile-modal.open { display: flex; }
-    .profile-dialog { width: min(560px, 100%); overflow: hidden; border: 2px solid var(--ink); border-radius: 26px; background: var(--paper); box-shadow: 8px 8px 0 var(--yellow); position: relative; }
-    .profile-close { position: absolute; top: 15px; right: 15px; z-index: 2; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(255,255,255,.9); color: var(--ink); cursor: pointer; font-size: 18px; }
-    .profile-hero { display: flex; align-items: center; gap: 16px; padding: 28px; background: var(--ink); color: white; }
-    .profile-avatar { flex: 0 0 auto; width: 64px; height: 64px; display: grid; place-items: center; border: 2px solid white; border-radius: 20px; background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 var(--orange); font-size: 28px; font-weight: 900; transform: rotate(-2deg); }
+    .profile-page { display: none; min-height: 100dvh; padding: clamp(18px, 4vw, 52px); overflow-y: auto; background: radial-gradient(circle at 8% 18%, rgba(255,200,87,.26), transparent 28rem), radial-gradient(circle at 94% 82%, rgba(71,107,214,.22), transparent 31rem), #111a32; }
+    .profile-page.open { display: grid; place-items: center; }
+    .profile-layout { width: min(1080px, 100%); min-height: min(720px, calc(100dvh - 72px)); display: grid; grid-template-columns: .9fr 1.1fr; overflow: hidden; border: 2px solid var(--ink); border-radius: 30px; background: var(--paper); box-shadow: 12px 12px 0 var(--yellow); }
+    .profile-story { position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 42px; background: var(--ink); color: white; }
+    .profile-story::before { content: ""; position: absolute; width: 360px; height: 360px; right: -210px; bottom: -200px; border: 58px solid rgba(255,200,87,.11); border-radius: 50%; }
+    .profile-story-brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; font-size: 15px; font-weight: 900; }
+    .profile-story-brand span { width: 39px; height: 39px; display: grid; place-items: center; border: 2px solid white; border-radius: 13px; background: var(--yellow); color: var(--ink); box-shadow: 3px 3px 0 var(--orange); }
+    .profile-story-copy { position: relative; z-index: 1; margin: auto 0; }
+    .profile-story-copy small { color: var(--yellow); font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    .profile-story-copy h2 { max-width: 340px; margin: 14px 0 16px; font-size: clamp(34px, 4.5vw, 58px); line-height: 1.08; letter-spacing: -.05em; }
+    .profile-story-copy p { max-width: 340px; margin: 0; color: rgba(255,255,255,.64); font-size: 13px; line-height: 1.8; }
+    .profile-story-foot { position: relative; z-index: 1; display: grid; gap: 7px; color: rgba(255,255,255,.5); font-size: 10px; }
+    .profile-story-foot strong { color: white; font-size: 11px; }
+    .profile-panel { position: relative; display: flex; flex-direction: column; justify-content: center; padding: 70px 54px 46px; background: var(--paper); }
+    .profile-close { position: absolute; top: 24px; right: 28px; z-index: 2; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: white; color: var(--ink); cursor: pointer; font-size: 10px; font-weight: 900; }
+    .profile-close:hover { border-color: var(--ink); background: var(--paper-deep); }
+    .profile-hero { display: flex; align-items: center; gap: 17px; margin-bottom: 26px; color: var(--ink); }
+    .profile-avatar { flex: 0 0 auto; width: 68px; height: 68px; display: grid; place-items: center; border: 2px solid var(--ink); border-radius: 21px; background: var(--yellow); color: var(--ink); box-shadow: 4px 4px 0 var(--orange); font-size: 29px; font-weight: 900; transform: rotate(-2deg); }
     .profile-identity { min-width: 0; }
-    .profile-kicker { display: block; margin-bottom: 5px; color: var(--yellow); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-    .profile-identity h2 { margin: 0 0 5px; font-size: 24px; overflow-wrap: anywhere; }
-    .profile-identity p { margin: 0; color: rgba(255,255,255,.62); font-size: 11px; overflow-wrap: anywhere; }
-    .profile-body { padding: 24px 28px 28px; }
+    .profile-kicker { display: block; margin-bottom: 5px; color: var(--blue); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .profile-identity h1 { margin: 0 0 5px; font-size: 29px; line-height: 1.15; overflow-wrap: anywhere; }
+    .profile-identity p { margin: 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .profile-body { padding: 0; }
     .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 20px; }
     .profile-stat { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper-deep); }
     .profile-stat span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9px; }
@@ -674,6 +688,19 @@
     .profile-save { border: 0; background: var(--blue); color: white; box-shadow: 3px 3px 0 var(--ink); }
     .profile-save:disabled { opacity: .6; cursor: wait; }
     .profile-logout { border: 1.5px solid #b83a30; background: transparent; color: #a6322a; }
+    @media (max-width: 760px) {
+      .profile-page { padding: 0; background: var(--paper); }
+      .profile-layout { width: 100%; min-height: 100dvh; display: block; border: 0; border-radius: 0; box-shadow: none; }
+      .profile-story { min-height: 190px; padding: 24px; }
+      .profile-story-copy { margin: 31px 0 0; }
+      .profile-story-copy h2 { margin: 9px 0 0; font-size: 30px; }
+      .profile-story-copy p, .profile-story-foot { display: none; }
+      .profile-panel { min-height: calc(100dvh - 190px); padding: 61px 24px 34px; justify-content: flex-start; }
+      .profile-close { top: 16px; right: 18px; }
+      .profile-hero { margin-bottom: 22px; }
+      .profile-stat { padding: 10px 8px; }
+      .profile-stat strong { font-size: 14px; }
+    }
     .reward-vault-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 27px 70px 25px 27px; overflow: hidden; background: var(--ink); color: white; position: relative; }
     .reward-vault-head::after { content: "✦"; position: absolute; right: 24px; bottom: -24px; color: rgba(255,200,87,.16); font-size: 112px; line-height: 1; }
     .reward-vault-head h2 { margin: 0 0 7px; font-size: 25px; }
@@ -802,9 +829,10 @@
       .invite-card { text-align: left; }
       .team-member-main { align-items: flex-start; flex-wrap: wrap; }
       .team-record-button { margin-left: 49px; }
-      .profile-hero { padding: 24px 20px; }
-      .profile-body { padding: 20px; }
-      .profile-stats { grid-template-columns: 1fr; }
+      .profile-avatar { width: 58px; height: 58px; border-radius: 18px; font-size: 25px; }
+      .profile-identity h1 { font-size: 25px; }
+      .profile-actions { align-items: stretch; flex-direction: column-reverse; }
+      .profile-save, .profile-logout { width: 100%; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1084,34 +1112,48 @@
     </div>
   </div>
 
-  <div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
-    <div class="profile-dialog">
-      <button class="profile-close" id="profileClose" type="button" aria-label="关闭">×</button>
-      <div class="profile-hero">
-        <div class="profile-avatar" id="profileAvatar" aria-hidden="true">勇</div>
-        <div class="profile-identity">
-          <span class="profile-kicker">My quest profile</span>
-          <h2 id="profileTitle">个人资料</h2>
-          <p id="profileEmail">尚未登录</p>
+  <main class="profile-page" id="profileModal" aria-labelledby="profileTitle">
+    <section class="profile-layout">
+      <aside class="profile-story" aria-label="个人资料说明">
+        <div class="profile-story-brand"><span>勇</span>考研勇者</div>
+        <div class="profile-story-copy">
+          <small>My quest profile</small>
+          <h2>让你的每一次坚持，<br>都有一个名字。</h2>
+          <p>用户昵称会显示在主页顶部；加入学习小队后，仍可以设置独立的队内昵称。</p>
         </div>
-      </div>
-      <form class="profile-body" id="profileForm">
-        <div class="profile-stats" aria-label="学习数据概览">
-          <div class="profile-stat"><span>累计经验</span><strong id="profileXp">0 XP</strong></div>
-          <div class="profile-stat"><span>勇者金币</span><strong id="profileCoin">🪙 0</strong></div>
-          <div class="profile-stat"><span>连续打卡</span><strong id="profileStreak">0 天</strong></div>
+        <div class="profile-story-foot">
+          <strong>个人身份与队内称呼相互独立</strong>
+          <span>管理员备注仅管理员可见，不会展示给你或队友。</span>
         </div>
-        <label class="profile-field" for="profileDisplayName">用户昵称
-          <input id="profileDisplayName" name="displayName" maxlength="30" required autocomplete="nickname" placeholder="例如：上岸小刘">
-        </label>
-        <p class="profile-help">用户昵称用于全站展示，队内昵称仍可单独设置。管理员备注仅管理员可见，不会在这里展示。</p>
-        <div class="profile-actions">
-          <button class="profile-logout" id="profileLogout" type="button">退出登录</button>
-          <button class="profile-save" id="profileSave" type="submit">保存昵称</button>
+      </aside>
+      <section class="profile-panel">
+        <button class="profile-close" id="profileClose" type="button" aria-label="返回主页">← 返回主页</button>
+        <div class="profile-hero">
+          <div class="profile-avatar" id="profileAvatar" aria-hidden="true">勇</div>
+          <div class="profile-identity">
+            <span class="profile-kicker">Account profile</span>
+            <h1 id="profileTitle">个人资料</h1>
+            <p id="profileEmail">尚未登录</p>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
+        <form class="profile-body" id="profileForm">
+          <div class="profile-stats" aria-label="学习数据概览">
+            <div class="profile-stat"><span>累计经验</span><strong id="profileXp">0 XP</strong></div>
+            <div class="profile-stat"><span>勇者金币</span><strong id="profileCoin">🪙 0</strong></div>
+            <div class="profile-stat"><span>连续打卡</span><strong id="profileStreak">0 天</strong></div>
+          </div>
+          <label class="profile-field" for="profileDisplayName">用户昵称
+            <input id="profileDisplayName" name="displayName" maxlength="30" required autocomplete="nickname" placeholder="例如：上岸小刘">
+          </label>
+          <p class="profile-help">用户昵称用于全站展示，队内昵称仍可单独设置。管理员备注仅管理员可见，不会在这里展示。</p>
+          <div class="profile-actions">
+            <button class="profile-logout" id="profileLogout" type="button">退出登录</button>
+            <button class="profile-save" id="profileSave" type="submit">保存昵称</button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
 
   <div class="admin-modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
     <div class="admin-dialog">
@@ -1801,16 +1843,29 @@
       updateDashboard();
     }
 
-    function openProfile() {
-      if (!getSession()?.email) return openAuth();
+    function openProfile({ pushHistory = true } = {}) {
+      if (!getSession()?.email) {
+        if (location.hash === "#profile") history.replaceState(null, "", `${location.pathname}${location.search}`);
+        return openAuth();
+      }
       renderProfile();
       elements.profileModal.classList.add("open");
+      document.body.classList.add("profile-open");
+      if (pushHistory && location.hash !== "#profile") history.pushState({ page: "profile" }, "", "#profile");
       requestAnimationFrame(() => elements.profileDisplayName.focus());
     }
 
-    function closeProfile() {
+    function closeProfile({ navigateBack = true } = {}) {
       elements.profileModal.classList.remove("open");
+      document.body.classList.remove("profile-open");
       elements.profileForm.reset();
+      if (navigateBack && location.hash === "#profile") history.back();
+    }
+
+    function syncHashRoute() {
+      if (location.hash === "#profile") openProfile({ pushHistory: false });
+      else if (elements.profileModal.classList.contains("open")) closeProfile({ navigateBack: false });
+      if (location.hash === "#admin") openAdminPanel();
     }
 
     async function handleProfileSubmit(event) {
@@ -1861,7 +1916,8 @@
         localStorage.removeItem(AUTH_SESSION_KEY);
       }
       userProfile = { displayName: "" };
-      closeProfile();
+      closeProfile({ navigateBack: false });
+      if (location.hash === "#profile") history.replaceState(null, "", `${location.pathname}${location.search}`);
       updateAccountUI();
       showToast("已退出账户");
     }
@@ -2918,7 +2974,6 @@
     elements.uploadZone.addEventListener("drop", (event) => prepareImages(event.dataTransfer.files));
     elements.accountButton.addEventListener("click", () => openAuth());
     $("#profileClose").addEventListener("click", closeProfile);
-    elements.profileModal.addEventListener("click", (event) => { if (event.target === elements.profileModal) closeProfile(); });
     elements.profileForm.addEventListener("submit", handleProfileSubmit);
     $("#profileLogout").addEventListener("click", logoutAccount);
     elements.historyList.addEventListener("click", (event) => {
@@ -2985,7 +3040,7 @@
     $("#adminNoteInput").addEventListener("input", (event) => {
       $("#adminNoteCount").textContent = `${event.target.value.length} / 100`;
     });
-    window.addEventListener("hashchange", () => { if (location.hash === "#admin") openAdminPanel(); });
+    window.addEventListener("hashchange", syncHashRoute);
 
     async function bootstrap() {
       $("#todayLabel").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
@@ -2999,7 +3054,7 @@
         try { await loadCloudState(); } catch (error) { showToast(error.message, "error"); }
       }
       await loadIntegrations();
-      if (location.hash === "#admin") openAdminPanel();
+      syncHashRoute();
     }
 
     bootstrap();
