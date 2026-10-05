@@ -66,6 +66,30 @@ test("creates HttpOnly cookies and restores a Supabase session", async (t) => {
   assert.equal(session.user.id, "user-1");
 });
 
+test("turns an unreachable Supabase project into a clear service error", async (t) => {
+  const previous = {
+    url: process.env.SUPABASE_URL,
+    anon: process.env.SUPABASE_ANON_KEY,
+    fetch: global.fetch,
+  };
+  process.env.SUPABASE_URL = "https://missing-project.supabase.co";
+  process.env.SUPABASE_ANON_KEY = "test-anon-key";
+  global.fetch = async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" });
+    throw Object.assign(new TypeError("fetch failed"), { cause });
+  };
+  t.after(() => {
+    global.fetch = previous.fetch;
+    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
+    if (previous.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = previous.anon;
+  });
+
+  await assert.rejects(
+    () => cloud.signIn({ headers: {} }, { setHeader() {} }, { email: "hero@example.com", password: "123456" }),
+    (error) => error.status === 503 && /Supabase.*项目地址/.test(error.message),
+  );
+});
+
 test("rejects admin login with a wrong password", async () => {
   const fakeResponse = { setHeader() {} };
   await assert.rejects(

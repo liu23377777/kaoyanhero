@@ -63,6 +63,19 @@ async function supabaseRequest(apiPath, options = {}) {
     return { data, response };
   } catch (error) {
     if (error.name === "AbortError") throw Object.assign(new Error("云端服务连接超时"), { status: 504 });
+    const networkCode = error?.cause?.code || error?.code;
+    if (["ENOTFOUND", "EAI_AGAIN"].includes(networkCode)) {
+      throw Object.assign(new Error("Supabase 项目地址无法访问，请联系管理员检查 SUPABASE_URL 或项目状态"), {
+        status: 503,
+        code: "SUPABASE_ADDRESS_UNREACHABLE",
+      });
+    }
+    if (error instanceof TypeError && error.message === "fetch failed") {
+      throw Object.assign(new Error("云端账户服务连接失败，请稍后重试或联系管理员"), {
+        status: 502,
+        code: "SUPABASE_CONNECTION_FAILED",
+      });
+    }
     throw error;
   } finally {
     clearTimeout(timer);
