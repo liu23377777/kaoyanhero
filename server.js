@@ -380,6 +380,47 @@ async function setupHabitica(payload, cloudSession = null) {
 
   const taskId = String(task?.id || task?._id || "").trim();
   if (!taskId) throw Object.assign(new Error("Habitica 已响应，但没有返回任务 ID"), { status: 502 });
+
+  // Ensure Daily is Hard priority for more XP
+  if (task.priority !== 2) {
+    try {
+      await habiticaRequest(`/tasks/${taskId}`, {
+        method: "PUT",
+        headers,
+        body: { priority: 2 },
+      });
+    } catch {}
+  }
+
+  // Ensure a Hard Habit for multi-score XP
+  const habitText = "考研勇者·学习经验";
+  const habitResult = await habiticaRequest("/tasks/user?type=habits", { headers });
+  const habits = Array.isArray(habitResult?.data) ? habitResult.data : [];
+  let habit = habits.find((item) => item?.text === habitText);
+  if (!habit) {
+    const createdHabit = await habiticaRequest("/tasks/user", {
+      method: "POST",
+      headers,
+      body: {
+        type: "habit",
+        text: habitText,
+        up: true,
+        down: false,
+        priority: 2,
+        notes: "根据考研勇者 AI 评分自动多次计分，用于快速升级。",
+      },
+    });
+    habit = createdHabit?.data;
+  } else if (habit.priority !== 2 || !habit.up || habit.down) {
+    try {
+      await habiticaRequest(`/tasks/${habit.id || habit._id}`, {
+        method: "PUT",
+        headers,
+        body: { priority: 2, up: true, down: false },
+      });
+    } catch {}
+  }
+
   if (cloudSession) {
     await cloud.saveHabiticaConnection(cloudSession, {
       userId,
@@ -410,23 +451,83 @@ function isLoopbackRequest(req) {
   return address === "::1" || address === "127.0.0.1" || address === "::ffff:127.0.0.1";
 }
 
-async function syncHabitica(config = habiticaConfig()) {
+async function syncHabitica(config = habiticaConfig(), aiScore = 60) {
   if (!config.userId || !config.apiToken || !config.taskId) {
     return { configured: false, synced: false, message: "Habitica 尚未配置" };
   }
   const headers = habiticaHeaders(config);
   const taskUrl = `https://habitica.com/api/v3/tasks/${encodeURIComponent(config.taskId)}`;
+  let lastStats = null;
+  let dailyScored = false;
+  let habitTimes = 0;
+
   try {
+    // 1. Score the Daily once if not already completed today
     const taskResponse = await fetch(taskUrl, { headers });
     const taskResult = await taskResponse.json();
     if (!taskResponse.ok) throw new Error(taskResult?.message || `Habitica 返回 ${taskResponse.status}`);
-    if (taskResult?.data?.completed) {
-      return { configured: true, synced: true, alreadyCompleted: true, message: "Habitica 今日任务已完成" };
+    if (!taskResult?.data?.completed) {
+      const scoreResponse = await fetch(`${taskUrl}/score/up`, { method: "POST", headers });
+      const scoreResult = await scoreResponse.json();
+      if (!scoreResponse.ok) throw new Error(scoreResult?.message || `Habitica Daily 计分失败`);
+      lastStats = scoreResult.data;
+      dailyScored = true;
     }
-    const scoreResponse = await fetch(`${taskUrl}/score/up`, { method: "POST", headers });
-    const scoreResult = await scoreResponse.json();
-    if (!scoreResponse.ok) throw new Error(scoreResult?.message || `Habitica 返回 ${scoreResponse.status}`);
-    return { configured: true, synced: true, alreadyCompleted: false, message: "已同步完成 Habitica 任务" };
+
+    // 2. Ensure Habit and score it multiple times based on AI score
+    const habitText = "考研勇者·学习经验";
+    const habitList = await habiticaRequest("/tasks/user?type=habits", { headers });
+    const habits = Array.isArray(habitList?.data) ? habitList.data : [];
+    let habit = habits.find((item) => item?.text === habitText);
+    if (!habit) {
+      const created = await habiticaRequest("/tasks/user", {
+        method: "POST",
+        headers,
+        body: {
+          type: "habit",
+          text: habitText,
+          up: true,
+          down: false,
+          priority: 2,
+          notes: "根据考研勇者 AI 评分自动多次计分，用于快速升级。",
+        },
+      });
+      habit = created?.data;
+    }
+    const habitId = habit?.id || habit?._id;
+    if (habitId) {
+      const times = Math.max(1, Math.min(8, Math.round((Number(aiScore) || 60) / 20)));
+      for (let i = 0; i < times; i++) {
+        const res = await fetch(`https://habitica.com/api/v3/tasks/${encodeURIComponent(habitId)}/score/up`, {
+          method: "POST",
+          headers,
+        });
+        const json = await res.json();
+        if (res.ok) {
+          lastStats = json.data;
+          habitTimes++;
+        }
+        if (i < times - 1) await new Promise((r) => setTimeout(r, 2500));
+      }
+    }
+
+    const lvl = lastStats?.lvl ?? lastStats?.stats?.lvl;
+    const exp = lastStats?.exp ?? lastStats?.stats?.exp;
+    const messageParts = [];
+    if (dailyScored) messageParts.push("Daily 已完成");
+    if (habitTimes) messageParts.push(`Habit +${habitTimes} 次`);
+    if (lvl != null) messageParts.push(`当前 Lv.${lvl}`);
+    if (exp != null) messageParts.push(`经验 ${Math.round(exp)}`);
+
+    return {
+      configured: true,
+      synced: true,
+      alreadyCompleted: !dailyScored,
+      message: messageParts.length ? messageParts.join("，") : "已同步 Habitica",
+      habitTimes,
+      lvl,
+      exp,
+    };
   } catch (error) {
     return { configured: true, synced: false, message: `Habitica 同步失败：${error.message}` };
   }
@@ -556,7 +657,7 @@ async function evaluate(payload, cloudSession = null) {
   const userHabitica = cloudSession ? await cloud.getHabiticaConnection(cloudSession) : habiticaConfig();
   const habitica = payload.syncHabitica === false
     ? { configured: Boolean(userHabitica?.taskId), synced: false, message: "本次未同步 Habitica" }
-    : await syncHabitica(userHabitica || {});
+    : await syncHabitica(userHabitica || {}, review.score);
   let cloudState = null;
   if (cloudSession) {
     await cloud.savePreferences(cloudSession, payload.provider, aiOptions);
