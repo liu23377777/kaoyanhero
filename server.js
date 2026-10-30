@@ -13,6 +13,20 @@ const MAX_REQUESTS_PER_WINDOW = 12;
 const requestWindows = new Map();
 
 const providers = {
+  zjsru_deepseek: {
+    name: "树人 · DeepSeek V4 Flash",
+    note: "校内 tokens 网关",
+    baseUrl: process.env.ZJSRU_BASE_URL || "https://tokens.zjsru.edu.cn/v1",
+    model: process.env.ZJSRU_DEEPSEEK_MODEL || "zjsru-DeepSeek-V4-flash-0731",
+    apiKey: process.env.ZJSRU_API_KEY,
+  },
+  zjsru_qwen: {
+    name: "树人 · Qwen3.8 27B",
+    note: "校内 tokens 网关",
+    baseUrl: process.env.ZJSRU_BASE_URL || "https://tokens.zjsru.edu.cn/v1",
+    model: process.env.ZJSRU_QWEN_MODEL || "zjsru-qwen3.8-27b",
+    apiKey: process.env.ZJSRU_API_KEY,
+  },
   glm: {
     name: "智谱 GLM",
     note: "推荐 · 免费视觉模型",

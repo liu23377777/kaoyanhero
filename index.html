@@ -1419,7 +1419,7 @@
       updateAccountUI();
       setApprovalBanner(appConfig.cloudMode && currentUser ? accountApproval : null);
       if (data?.preferences) {
-        localStorage.setItem("kaoyanAiProvider", data.preferences.provider || "glm");
+        localStorage.setItem("kaoyanAiProvider", data.preferences.provider || "zjsru_deepseek");
         applyAiSettings({
           reasoningMode: data.preferences.reasoning_mode,
           detailLevel: data.preferences.detail_level,
@@ -1541,7 +1541,7 @@
         const response = await fetch("/api/providers");
         const data = await response.json();
         providers = data.providers || [];
-        const savedProvider = localStorage.getItem("kaoyanAiProvider") || "glm";
+        const savedProvider = localStorage.getItem("kaoyanAiProvider") || "zjsru_deepseek";
         elements.provider.innerHTML = providers.map((provider) =>
           `<option value="${escapeHtml(provider.id)}" ${provider.id === savedProvider ? "selected" : ""}>${escapeHtml(provider.name)} · ${escapeHtml(provider.model || "未填写模型")}</option>`
         ).join("");

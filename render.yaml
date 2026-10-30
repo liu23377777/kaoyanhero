@@ -29,6 +29,14 @@ services:
         value: false
       - key: ENABLE_GITHUB_AUTH
         value: false
+      - key: ZJSRU_API_KEY
+        sync: false
+      - key: ZJSRU_BASE_URL
+        value: https://tokens.zjsru.edu.cn/v1
+      - key: ZJSRU_DEEPSEEK_MODEL
+        value: zjsru-DeepSeek-V4-flash-0731
+      - key: ZJSRU_QWEN_MODEL
+        value: zjsru-qwen3.8-27b
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: DEEPSEEK_BASE_URL

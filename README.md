@@ -98,12 +98,16 @@ Render 免费实例会休眠，但用户数据保存在 Supabase，不会因服�
 
 | 平台 | Base URL | 默认模型 |
 | --- | --- | --- |
+| 树人 DeepSeek | `https://tokens.zjsru.edu.cn/v1` | `zjsru-DeepSeek-V4-flash-0731` |
+| 树人 Qwen | `https://tokens.zjsru.edu.cn/v1` | `zjsru-qwen3.8-27b` |
 | DeepSeek | `https://api.deepseek.com` | `deepseek-flash`（当前指向 V4.1 Flash） |
 | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6v-flash` |
 | 阿里百炼 Qwen | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen3-vl-8b-instruct` |
 | 火山方舟 / 豆包 | `https://ark.cn-beijing.volces.com/api/v3` | `doubao-seed-1-6-vision-250815` |
 | 安知鱼 | `https://sub.anzhiyu.com/v1` | 请按站点模型列表填写 |
 | 自定义 | 通过 `CUSTOM_BASE_URL` 设置 | 通过 `CUSTOM_MODEL` 设置 |
+
+树人两个模型共用 `ZJSRU_BASE_URL` 与 `ZJSRU_API_KEY`。部署到 Render 时务必在环境变量中填写 `ZJSRU_API_KEY`。
 
 方舟部分账号要求填写控制台创建的“推理接入点 ID”，这时直接将 `ARK_MODEL` 改为该 ID。
 
